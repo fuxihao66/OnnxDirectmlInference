@@ -134,108 +134,50 @@ FODID3D12RHI::~FODID3D12RHI()
 void FODID3D12RHI::ExecuteInfer(FRHICommandList& CmdList, const FRHIDLSSArguments& InArguments, FDLSSStateRef InDLSSState)
 {
 	check(!IsRunningRHIInSeparateThread() || IsInRHIThread());
-	check(IsDLSSAvailable());
-	if (!IsDLSSAvailable()) return;
 
-	InArguments.Validate();
-
+	// const std::map<std::string, FRHITextureRef> InArguments.ModelInputs
+	
 	FD3D12Device* Device = D3D12RHI->GetAdapter().GetDevice(CmdList.GetGPUMask().ToIndex());
 	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetCommandContext().CommandListHandle.GraphicsCommandList();
-	if (InDLSSState->RequiresFeatureRecreation(InArguments))
-	{
-		check(!InDLSSState->DLSSFeature || InDLSSState->HasValidFeature());
-		InDLSSState->DLSSFeature = nullptr;
+
+	auto & modelInputs = InArguments.ModelInputs;
+	auto & modelOutput = GetD3D12TextureFromRHITexture(InArguments.ModelOutput, InArguments.GPUNode)->GetResource()->GetResource();
+
+	ID3D12DescriptorHeap* pHeaps[] = { m_dmlDescriptorHeap->Heap() };
+	D3DGraphicsCommandList->SetDescriptorHeaps(_countof(pHeaps), pHeaps);
+	
+	auto& currOnnxInfo = m_modelNameToResourceInfo[modelName];
+
+	auto modelInputNum = currOnnxInfo.modelInputNum;
+	auto modelOutputNum = currOnnxInfo.modelOutputNum;
+	auto dmlGraph = currOnnxInfo.dmlGraph;
+	auto dmlBindingTable = currOnnxInfo.dmlBindingTable;
+
+	int inputIndex = 0;
+	std::vector<DML_BUFFER_BINDING> bufferBindings(modelInputs.size());
+	for (auto& input : modelInputs) { // because std::map is sorted
+
+		auto resourcePointer = GetD3D12TextureFromRHITexture(input.second, InArguments.GPUNode)->GetResource()->GetResource();
+		bufferBindings[inputIndex] = DML_BUFFER_BINDING{ resourcePointer }; // TODO: buffer size might be larger than tensor size (because buffer is 16 byte aligned)
+		currOnnxInfo.inputBindings[inputIndex] = { DML_BINDING_TYPE_BUFFER, &bufferBindings[inputIndex] };
+
+		inputIndex += 1;
 	}
+	
+	dmlBindingTable->BindInputs(currOnnxInfo.inputBindings.size(), currOnnxInfo.inputBindings.data());
 
-	if (InArguments.bReset)
-	{
-		check(!InDLSSState->DLSSFeature);
-		InDLSSState->DLSSFeature = FindFreeFeature(InArguments);
-	}
+	DML_BUFFER_BINDING outputBinding = { modelOutput, 0, modelOutput->GetDesc().Width }; // TODO: buffer size might be larger than tensor size (because buffer is 16 byte aligned)
+	dmlBindingTable->BindOutputs(1, &DML_BINDING_DESC{ DML_BINDING_TYPE_BUFFER, &outputBinding });
 
-	if (!InDLSSState->DLSSFeature)
-	{
-		NVSDK_NGX_Parameter* NewNGXParameterHandle = nullptr;
-		NVSDK_NGX_Result Result = NVSDK_NGX_D3D12_AllocateParameters(&NewNGXParameterHandle);
-		checkf(NVSDK_NGX_SUCCEED(Result), TEXT("NVSDK_NGX_D3D12_AllocateParameters failed! (%u %s)"), Result, GetNGXResultAsString(Result));
-
-		ApplyCommonNGXParameterSettings(NewNGXParameterHandle, InArguments);
-
-		NVSDK_NGX_DLSS_Create_Params DlssCreateParams = InArguments.GetNGXDLSSCreateParams();
-		NVSDK_NGX_Handle* NewNGXFeatureHandle = nullptr;
-
-		const uint32 CreationNodeMask = 1 << InArguments.GPUNode;
-		const uint32 VisibilityNodeMask = InArguments.GPUVisibility;
-
-		NVSDK_NGX_Result ResultCreate = NGX_D3D12_CREATE_DLSS_EXT(
-			D3DGraphicsCommandList,
-			CreationNodeMask,
-			VisibilityNodeMask,
-			&NewNGXFeatureHandle,
-			NewNGXParameterHandle,
-			&DlssCreateParams
-		);
-		checkf(NVSDK_NGX_SUCCEED(ResultCreate), TEXT("NGX_D3D12_CREATE_DLSS_EXT (CreationNodeMask=0x%x VisibilityNodeMask=0x%x) failed! (%u %s), %s"), CreationNodeMask, VisibilityNodeMask, ResultCreate, GetNGXResultAsString(ResultCreate), *InArguments.GetFeatureDesc().GetDebugDescription());
-		InDLSSState->DLSSFeature = MakeShared<FD3D12NGXDLSSFeature>(NewNGXFeatureHandle, NewNGXParameterHandle, InArguments.GetFeatureDesc(), FrameCounter);
-		RegisterFeature(InDLSSState->DLSSFeature);
-	}
-
-	check(InDLSSState->HasValidFeature());
-
+	m_dmlCommandRecorder->RecordDispatch(D3DGraphicsCommandList.Get(), dmlGraph.Get(), dmlBindingTable.Get());
 	// execute
 	if (Device->GetCommandContext().IsDefaultContext())
 	{
 		Device->RegisterGPUWork(1);
 	}
 
-	NVSDK_NGX_D3D12_DLSS_Eval_Params DlssEvalParams;
-	FMemory::Memzero(DlssEvalParams);
-
-	DlssEvalParams.Feature.pInOutput = GetD3D12TextureFromRHITexture(InArguments.OutputColor, InArguments.GPUNode)->GetResource()->GetResource();
-	DlssEvalParams.InOutputSubrectBase.X = InArguments.DestRect.Min.X;
-	DlssEvalParams.InOutputSubrectBase.Y = InArguments.DestRect.Min.Y;
-
-	DlssEvalParams.InRenderSubrectDimensions.Width = InArguments.SrcRect.Width();
-	DlssEvalParams.InRenderSubrectDimensions.Height = InArguments.SrcRect.Height();
-
-	DlssEvalParams.Feature.pInColor = GetD3D12TextureFromRHITexture(InArguments.InputColor, InArguments.GPUNode)->GetResource()->GetResource();
-	DlssEvalParams.InColorSubrectBase.X = InArguments.SrcRect.Min.X;
-	DlssEvalParams.InColorSubrectBase.Y = InArguments.SrcRect.Min.Y;
-
-	DlssEvalParams.pInDepth = GetD3D12TextureFromRHITexture(InArguments.InputDepth, InArguments.GPUNode)->GetResource()->GetResource();
-	DlssEvalParams.InDepthSubrectBase.X = InArguments.SrcRect.Min.X;
-	DlssEvalParams.InDepthSubrectBase.Y = InArguments.SrcRect.Min.Y;
-
-	DlssEvalParams.pInMotionVectors = GetD3D12TextureFromRHITexture(InArguments.InputMotionVectors, InArguments.GPUNode)->GetResource()->GetResource();
-	// The VelocityCombine pass puts the motion vectors into the top left corner
-	DlssEvalParams.InMVSubrectBase.X = 0;
-	DlssEvalParams.InMVSubrectBase.Y = 0;
-
-	DlssEvalParams.pInExposureTexture = InArguments.bUseAutoExposure ? nullptr : GetD3D12TextureFromRHITexture(InArguments.InputExposure, InArguments.GPUNode)->GetResource()->GetResource();
-	DlssEvalParams.InPreExposure = InArguments.PreExposure;
-
-	DlssEvalParams.Feature.InSharpness = InArguments.Sharpness;
-	DlssEvalParams.InJitterOffsetX = InArguments.JitterOffset.X;
-	DlssEvalParams.InJitterOffsetY = InArguments.JitterOffset.Y;
-
-	DlssEvalParams.InMVScaleX = InArguments.MotionVectorScale.X;
-	DlssEvalParams.InMVScaleY = InArguments.MotionVectorScale.Y;
-	DlssEvalParams.InReset = InArguments.bReset;
-
-	DlssEvalParams.InFrameTimeDeltaInMsec = InArguments.DeltaTime;
-
-	NVSDK_NGX_Result ResultEvaluate = NGX_D3D12_EVALUATE_DLSS_EXT(
-		D3DGraphicsCommandList,
-		InDLSSState->DLSSFeature->Feature,
-		InDLSSState->DLSSFeature->Parameter,
-		&DlssEvalParams
-	);
-	checkf(NVSDK_NGX_SUCCEED(ResultEvaluate), TEXT("NGX_D3D12_EVALUATE_DLSS_EXT failed! (%u %s), %s"), ResultEvaluate, GetNGXResultAsString(ResultEvaluate), *InDLSSState->DLSSFeature->Desc.GetDebugDescription());
-	InDLSSState->DLSSFeature->Tick(FrameCounter);
-
 	Device->GetCommandContext().StateCache.ForceSetComputeRootSignature();
 	Device->GetCommandContext().StateCache.GetDescriptorCache()->SetCurrentCommandList(Device->GetCommandContext().CommandListHandle);
-	
 }
 
 /** IModuleInterface implementation */
