@@ -1,9 +1,9 @@
 
 using UnrealBuildTool;
 using System.IO;
-public class NGXD3D12RHI : ModuleRules
+public class ODID3D12RHI : ModuleRules
 {
-	public NGXD3D12RHI(ReadOnlyTargetRules Target) : base(Target)
+	public ODID3D12RHI(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
@@ -22,6 +22,7 @@ public class NGXD3D12RHI : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"DirectML_1_9_1",
 			}
 			);
 			

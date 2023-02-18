@@ -1,72 +1,74 @@
 
-bool Network::CreateModelAndUploadData(GraphBuilder, onnx_file_path, modelName){
+Network::Network(const std::wstring& onnx_file_path, const std::string& model_name){
+    FODIModule* LocalODIModuleRef = &FModuleManager::LoadModuleChecked<FODIModule>("ODI"); // load module
+	m_ODIRHIExtensions = LocalODIModuleRef->GetODIRHIRef();
+
+    m_onnx_file_path = onnx_file_path;
+
+    if (model_name == "")
+        m_model_name = m_onnx_file_path;
+    else
+        m_model_name = model_name;
+}
+
+
+
+bool Network::CreateModelAndUploadData(FRDGBuilder& GraphBuilder){
     GraphBuilder.AddPass(
-        RDG_EVENT_NAME("DLSS %s%s %dx%d -> %dx%d",
-            PassName,
-            Sharpness != 0.0f ? TEXT(" Sharpen") : TEXT(""),
-            SrcRect.Width(), SrcRect.Height(),
-            DestRect.Width(), DestRect.Height()),
+        RDG_EVENT_NAME("Create Model for %s", TEXT(m_model_name)),
         PassParameters,
         ERDGPassFlags::Compute | ERDGPassFlags::Raster | ERDGPassFlags::SkipRenderPass,
-        [LocalNGXRHIExtensions, PassParameters, Inputs, bCameraCut, JitterOffset, DeltaWorldTime, PreExposure, Sharpness, NGXDLAAPreset, NGXDLSSPreset, NGXPerfQuality, DLSSState, bUseAutoExposure, bReleaseMemoryOnDelete](FRHICommandListImmediate& RHICmdList)
+        [m_ODIRHIExtensions, PassParameters, m_onnx_file_path, m_model_name](FRHICommandListImmediate& RHICmdList)
     {
-        FRHIDLSSArguments DLSSArguments;
-        
-        // output images
-        check(PassParameters->SceneColorOutput);
-        PassParameters->SceneColorOutput->MarkResourceAsUsed();
-        DLSSArguments.OutputColor = PassParameters->SceneColorOutput->GetRHI();
 
-        RHICmdList.TransitionResource(ERHIAccess::UAVMask, DLSSArguments.OutputColor);
         RHICmdList.EnqueueLambda(
-            [LocalNGXRHIExtensions, DLSSArguments, DLSSState](FRHICommandListImmediate& Cmd) mutable
+            [m_ODIRHIExtensions, DLSSArguments, DLSSState](FRHICommandListImmediate& Cmd) mutable
         {
 
-            const uint32 FeatureCreationNode = CVarNGXDLSSFeatureCreationNode.GetValueOnRenderThread();
-            const uint32 FeatureVisibilityMask = CVarNGXDLSSFeatureVisibilityMask.GetValueOnRenderThread();
-
-            DLSSArguments.GPUNode = FeatureCreationNode == -1 ? Cmd.GetGPUMask().ToIndex() : FMath::Clamp(FeatureCreationNode, 0u, GNumExplicitGPUsForRendering - 1);
-            DLSSArguments.GPUVisibility = FeatureVisibilityMask == -1 ? Cmd.GetGPUMask().GetNative() : (Cmd.GetGPUMask().All().GetNative() & FeatureVisibilityMask) ;
-
-            LocalODIRHIExtensions->ParseAndUploadModelData(Cmd, DLSSArguments, DLSSState);
-            LocalODIRHIExtensions->ParseAndUploadModelData(InitializeNewModel);
+            // LocalODIModuleRef->CreateAndInitializeModel(Cmd, DLSSArguments);
+            m_ODIRHIExtensions->ParseAndUploadModelData(Cmd, onnx_file_path, m_model_name);
+            m_ODIRHIExtensions->InitializeNewModel(Cmd, m_model_name);
+            // TODO: synchronize
         });
     });
 
-    // TODO: force sync 
 }
 
-bool Network::ExecuteInfer(GraphBuilder, bufferMap){
+bool Network::ExecuteInference(FRDGBuilder& GraphBuilder, std::map<std::string, FRDGBufferRef> InputBuffers, FRDGBufferRef OutputBuffer){
     GraphBuilder.AddPass(
-        RDG_EVENT_NAME("DLSS %s%s %dx%d -> %dx%d",
-            PassName,
-            Sharpness != 0.0f ? TEXT(" Sharpen") : TEXT(""),
-            SrcRect.Width(), SrcRect.Height(),
-            DestRect.Width(), DestRect.Height()),
+        RDG_EVENT_NAME("Execute OnnxDML Inference"),
         PassParameters,
         ERDGPassFlags::Compute | ERDGPassFlags::Raster | ERDGPassFlags::SkipRenderPass,
-        [LocalNGXRHIExtensions, PassParameters, Inputs, bCameraCut, JitterOffset, DeltaWorldTime, PreExposure, Sharpness, NGXDLAAPreset, NGXDLSSPreset, NGXPerfQuality, DLSSState, bUseAutoExposure, bReleaseMemoryOnDelete](FRHICommandListImmediate& RHICmdList)
+        [m_ODIRHIExtensions, m_model_name, PassParameters, InputBuffers, OutputBuffer](FRHICommandListImmediate& RHICmdList)
     {
-        FRHIDLSSArguments DLSSArguments;
+        FODIRHIInferArguments Arguments;
         
         // output images
         check(PassParameters->SceneColorOutput);
         PassParameters->SceneColorOutput->MarkResourceAsUsed();
-        DLSSArguments.OutputColor = PassParameters->SceneColorOutput->GetRHI();
 
-        RHICmdList.TransitionResource(ERHIAccess::UAVMask, DLSSArguments.OutputColor);
+        Arguments.ModelName = m_model_name;
+        
+        Arguments.Output = PassParameters->SceneColorOutput->GetRHI();
+
+        for (auto it = InputBuffers.begin(); it != InputBuffers.end(); it++){
+            Arguments.Inputs[it->first] = it->second->GetRHI();
+        }
+
+        RHICmdList.TransitionResource(ERHIAccess::UAVMask, Arguments.OutputColor);
+        RHICmdList.TransitionResource(ERHIAccess::UAVMask, Arguments.OutputColor);
+        RHICmdList.TransitionResource(ERHIAccess::UAVMask, Arguments.OutputColor);
+
         RHICmdList.EnqueueLambda(
-            [LocalNGXRHIExtensions, DLSSArguments, DLSSState](FRHICommandListImmediate& Cmd) mutable
+            [m_ODIRHIExtensions, Arguments](FRHICommandListImmediate& Cmd) mutable
         {
-            LocalODIRHIExtensions->BindResources();
+            Arguments.GPUNode = Cmd.GetGPUMask().ToIndex();
+            Arguments.GPUVisibility = Cmd.GetGPUMask().GetNative();
 
-            const uint32 FeatureCreationNode = CVarNGXDLSSFeatureCreationNode.GetValueOnRenderThread();
-            const uint32 FeatureVisibilityMask = CVarNGXDLSSFeatureVisibilityMask.GetValueOnRenderThread();
+            // LocalODIModuleRef->BindResourceAndExecuteInference(Cmd, DLSSArguments);
 
-            DLSSArguments.GPUNode = FeatureCreationNode == -1 ? Cmd.GetGPUMask().ToIndex() : FMath::Clamp(FeatureCreationNode, 0u, GNumExplicitGPUsForRendering - 1);
-            DLSSArguments.GPUVisibility = FeatureVisibilityMask == -1 ? Cmd.GetGPUMask().GetNative() : (Cmd.GetGPUMask().All().GetNative() & FeatureVisibilityMask) ;
-
-            LocalODIRHIExtensions->ExecuteInfer(Cmd, DLSSArguments, DLSSState);
+            m_ODIRHIExtensions->BindResources(Arguments.ModelName);
+            m_ODIRHIExtensions->ExecuteInference(Cmd, Arguments);
         });
     });
 }

@@ -26,7 +26,7 @@ public class ODI : ModuleRules
 			new string[]
 			{
 				"Core",
-				"DirectML_1_9_1",
+				// "DirectML_1_9_1",
 				"Projects"
 				// ... add other public dependencies that you statically link with here ...
 			}

@@ -10,63 +10,151 @@
 #include "RHIValidationCommon.h"
 #include "GenericPlatform/GenericPlatformFile.h"
 
+#include "Common/OnnxParser.h"
+#include "OnnxDMLOperatorMapping.h"
+
+
+#pragma comment(lib, "d3d12.lib")
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogODID3D12RHI, Log, All);
 
 #define LOCTEXT_NAMESPACE "FODID3D12RHIModule"
+#define _Debug 0
 
-
-class FODID3D12RHI final : public ODIRHI
-{
-
-public:
-	FODID3D12RHI(const FNGXRHICreateArguments& Arguments);
-	virtual void ExecuteInfer(FRHICommandList& CmdList, const FRHIDLSSArguments& InArguments, FDLSSStateRef InDLSSState) final;
-	virtual ~FODID3D12RHI();
-private:
-	NVSDK_NGX_Result InitializeNewModel(const FNGXRHICreateArguments& InArguments, const wchar_t* InApplicationDataPath, ID3D12Device* InHandle, const NVSDK_NGX_FeatureCommonInfo* InFeatureInfo);
-
-	FD3D12DynamicRHI* D3D12RHI = nullptr;
+struct ModelInfo {
+	bool 												PersAndTempResourceIsBinded;
+	unsigned int                                        modelInputNum;
+	unsigned int                                        modelOutputNum;
+	std::vector<ONNX_PARSER::BindingInfo>               weightsBinding;
+	/*unsigned int                                        descriptorCPUOffset;
+	unsigned int                                        descriptorGPUOffset;*/
+	std::vector<DML_BINDING_DESC>                       inputBindings;
+	Microsoft::WRL::ComPtr<IDMLCompiledOperator>        dmlGraph;
+	Microsoft::WRL::ComPtr<IDMLOperatorInitializer>     dmlOpInitializer;
+	Microsoft::WRL::ComPtr<ID3D12Resource>              modelPersistentResource;
+	Microsoft::WRL::ComPtr<ID3D12Resource>              modelTemporaryResource;
+	Microsoft::WRL::ComPtr<ID3D12Resource>              modelOperatorWeights;
+	Microsoft::WRL::ComPtr<ID3D12Resource>              scratchResource; // used for upload weights
+	Microsoft::WRL::ComPtr<IDMLBindingTable>            dmlBindingTable;
+	ModelInfo() : PersAndTempResourceIsBinded(false), modelInputNum(0), modelOutputNum(0), dmlGraph(nullptr), dmlOpInitializer(nullptr),
+		modelPersistentResource(nullptr), modelTemporaryResource(nullptr), modelOperatorWeights(nullptr), dmlBindingTable(nullptr)
+	{}
 };
 
-NVSDK_NGX_Result FNGXD3D12RHI::Init_NGX_D3D12(const FNGXRHICreateArguments& InArguments, const wchar_t* InApplicationDataPath, ID3D12Device* InHandle, const NVSDK_NGX_FeatureCommonInfo* InFeatureInfo)
+class DescriptorHeapWrapper 
 {
-	NVSDK_NGX_Result Result = NVSDK_NGX_Result_Fail;
-	int32 APIVersion = NVSDK_NGX_VERSION_API_MACRO;
-	do 
+private:
+	void Create(
+		ID3D12Device* pDevice,
+		const D3D12_DESCRIPTOR_HEAP_DESC* pDesc)
 	{
-		if (InArguments.InitializeNGXWithNGXApplicationID())
+		assert(pDesc != nullptr);
+
+		m_desc = *pDesc;
+		m_increment = pDevice->GetDescriptorHandleIncrementSize(pDesc->Type);
+
+		if (pDesc->NumDescriptors == 0)
 		{
-			Result = NVSDK_NGX_D3D12_Init(InArguments.NGXAppId, InApplicationDataPath, InHandle, InFeatureInfo, static_cast<NVSDK_NGX_Version>(APIVersion));
-			UE_LOG(LogDLSSNGXD3D12RHI, Log, TEXT("NVSDK_NGX_D3D12_Init(AppID= %u, APIVersion = 0x%x, Device=%p) -> (%u %s)"), InArguments.NGXAppId, APIVersion, InHandle, Result, GetNGXResultAsString(Result));
+			m_pHeap.Reset();
+			m_hCPU.ptr = 0;
+			m_hGPU.ptr = 0;
 		}
 		else
 		{
-			Result = NVSDK_NGX_D3D12_Init_with_ProjectID(TCHAR_TO_UTF8(*InArguments.UnrealProjectID), NVSDK_NGX_ENGINE_TYPE_UNREAL, TCHAR_TO_UTF8(*InArguments.UnrealEngineVersion), InApplicationDataPath, InHandle, InFeatureInfo, static_cast<NVSDK_NGX_Version>(APIVersion));
-			UE_LOG(LogDLSSNGXD3D12RHI, Log, TEXT("NVSDK_NGX_D3D12_Init_with_ProjectID(ProjectID = %s, EngineVersion=%s, APIVersion = 0x%x, Device=%p) -> (%u %s)"), *InArguments.UnrealProjectID, *InArguments.UnrealEngineVersion, APIVersion, InHandle,  Result, GetNGXResultAsString(Result));
-		}
+			pDevice->CreateDescriptorHeap(
+				pDesc,
+				IID_PPV_ARGS(m_pHeap.ReleaseAndGetAddressOf()));
 
-		if (NVSDK_NGX_FAILED(Result))
-		{
-			NVSDK_NGX_D3D12_Shutdown1(InHandle);
-		}
-		
-		--APIVersion;
-	} while (NVSDK_NGX_FAILED(Result) && APIVersion >= NVSDK_NGX_VERSION_API_MACRO_BASE_LINE);
+			m_hCPU = m_pHeap->GetCPUDescriptorHandleForHeapStart();
 
-	if (NVSDK_NGX_SUCCEED(Result) && (APIVersion + 1 < NVSDK_NGX_VERSION_API_MACRO_WITH_LOGGING))
-	{
-		UE_LOG(LogDLSSNGXD3D12RHI, Log, TEXT("Warning: NVSDK_NGX_D3D12_Init succeeded, but the driver installed on this system is too old the support the NGX logging API. The console variables r.NGX.LogLevel and r.NGX.EnableOtherLoggingSinks will have no effect and NGX logs will only show up in their own log files, and not in UE's log files."));
+			if (pDesc->Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
+				m_hGPU = m_pHeap->GetGPUDescriptorHandleForHeapStart();
+
+		}
 	}
 
-	return Result;
-}
+public:
+	DescriptorHeapWrapper(
+		_In_ ID3D12Device* device,
+		D3D12_DESCRIPTOR_HEAP_TYPE type,
+		D3D12_DESCRIPTOR_HEAP_FLAGS flags,
+		size_t count) :
+		m_desc{},
+		m_hCPU{},
+		m_hGPU{},
+		m_increment(0)
+	{
+		if (count > UINT32_MAX)
+			throw std::exception("Too many descriptors");
+
+		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+		desc.Flags = flags;
+		desc.NumDescriptors = static_cast<UINT>(count);
+		desc.Type = type;
+		Create(device, &desc);
+	}
+	ID3D12DescriptorHeap* Heap() {
+		return m_pHeap.Get();
+	}
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(_In_ size_t index) const
+	{
+		assert(m_pHeap != nullptr);
+		if (index >= m_desc.NumDescriptors)
+		{
+			throw std::out_of_range("D3DX12_CPU_DESCRIPTOR_HANDLE");
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE handle;
+		handle.ptr = static_cast<SIZE_T>(m_hCPU.ptr + UINT64(index) * UINT64(m_increment));
+		return handle;
+	}
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(_In_ size_t index) const
+	{
+		assert(m_pHeap != nullptr);
+		if (index >= m_desc.NumDescriptors)
+		{
+			throw std::out_of_range("D3DX12_GPU_DESCRIPTOR_HANDLE");
+		}
+		assert(m_desc.Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+
+		D3D12_GPU_DESCRIPTOR_HANDLE handle;
+		handle.ptr = m_hGPU.ptr + UINT64(index) * UINT64(m_increment);
+		return handle;
+	}
+private:
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>    m_pHeap;
+	D3D12_DESCRIPTOR_HEAP_DESC                      m_desc;
+	D3D12_CPU_DESCRIPTOR_HANDLE                     m_hCPU;
+	D3D12_GPU_DESCRIPTOR_HANDLE                     m_hGPU;
+	uint32_t                                        m_increment;
+};
+class FODID3D12RHI final : public ODIRHI
+{
+private:
+	Microsoft::WRL::ComPtr<IDMLDevice>              m_dmlDevice;
+	Microsoft::WRL::ComPtr<IDMLCommandRecorder>     m_dmlCommandRecorder;
+	std::unique_ptr<DescriptorHeapWrapper>        	m_dmlDescriptorHeap;
+	
+	std::unordered_map<std::string, ModelInfo>      m_modelNameToResourceInfo; // model info (for supporting different models)
+	UINT                                            m_currentDescriptorTopIndex;
+public:
+	FODID3D12RHI(const FODIRHICreateArguments& Arguments);
+	virtual ODI_Result ParseAndUploadModelData(FRHICommandList& CmdList, const std::wstring& path_to_onnx, const std::string& model_name);
+	virtual ODI_Result InitializeNewModel(FRHICommandList& CmdList, const std::string& model_name);
+	virtual ODI_Result BindResources(const std::string& model_name);
+	virtual ODI_Result ExecuteInference(FRHICommandList& CmdList, const FODIRHIInferArguments& InArguments) final;
+	virtual ~FODID3D12RHI();
+private:
+	ODI_Result CreateDMLResources();
+
+	ID3D12Device* m_d3dDevice = nullptr;
+	FD3D12DynamicRHI* D3D12RHI = nullptr;
+};
 
 
-
-FODID3D12RHI::FODID3D12RHI(const FNGXRHICreateArguments& Arguments)
-	: NGXRHI(Arguments)
+FODID3D12RHI::FODID3D12RHI(const FODIRHICreateArguments& Arguments)
+	: ODIRHI(Arguments)
 	, D3D12RHI(static_cast<FD3D12DynamicRHI*>(Arguments.DynamicRHI))
 
 {
@@ -74,72 +162,28 @@ FODID3D12RHI::FODID3D12RHI(const FNGXRHICreateArguments& Arguments)
 
 	ensure(D3D12RHI);
 	ensure(Direct3DDevice);
-	bIsIncompatibleAPICaptureToolActive = IsIncompatibleAPICaptureToolActive(Direct3DDevice);
 
-	const FString NGXLogDir = GetNGXLogDirectory();
-	IPlatformFile::GetPlatformPhysical().CreateDirectoryTree(*NGXLogDir);
-
-	NVSDK_NGX_Result ResultInit = Init_NGX_D3D12(Arguments, *NGXLogDir, Direct3DDevice, CommonFeatureInfo());
-	UE_LOG(LogDLSSNGXD3D12RHI, Log, TEXT("NVSDK_NGX_D3D12_Init (Log %s) -> (%u %s)"), *NGXLogDir, ResultInit, GetNGXResultAsString(ResultInit));
+	// const FString NGXLogDir = GetNGXLogDirectory();
+	// IPlatformFile::GetPlatformPhysical().CreateDirectoryTree(*NGXLogDir);
+	m_d3dDevice = Direct3DDevice;
+	ODI_Result ResultInit = CreateDMLResources();
+	UE_LOG(LogODID3D12RHI, Log, TEXT("ODI_D3D12_Init"));
 	
-	// store for the higher level code interpret
-	DLSSQueryFeature.DLSSInitResult = ResultInit;
-
-	if (NVSDK_NGX_Result_FAIL_OutOfDate == ResultInit)
-	{
-		DLSSQueryFeature.DriverRequirements.DriverUpdateRequired = true;
-	}
-	else if (NVSDK_NGX_SUCCEED(ResultInit))
-	{
-		bNGXInitialized = true;
-
-		NVSDK_NGX_Result ResultGetParameters = NVSDK_NGX_D3D12_GetCapabilityParameters(&DLSSQueryFeature.CapabilityParameters);
-
-		UE_LOG(LogDLSSNGXD3D12RHI, Log, TEXT("NVSDK_NGX_D3D12_GetCapabilityParameters -> (%u %s)"), ResultGetParameters, GetNGXResultAsString(ResultGetParameters));
-
-		if (NVSDK_NGX_Result_FAIL_OutOfDate == ResultGetParameters)
-		{
-			DLSSQueryFeature.DriverRequirements.DriverUpdateRequired = true;
-		}
-
-		if (NVSDK_NGX_SUCCEED(ResultGetParameters))
-		{
-			DLSSQueryFeature.QueryDLSSSupport();
-		}
-	}
 }
 
 FODID3D12RHI::~FODID3D12RHI()
 {
-
-
-
-	UE_LOG(LogDLSSNGXD3D12RHI, Log, TEXT("%s Enter"), ANSI_TO_TCHAR(__FUNCTION__));
-	if (bNGXInitialized)
-	{
-		// Destroy the parameters and features before we call NVSDK_NGX_D3D12_Shutdown1
-		ReleaseAllocatedFeatures();
-		
-		NVSDK_NGX_Result Result;
-		if (DLSSQueryFeature.CapabilityParameters != nullptr)
-		{
-			Result = NVSDK_NGX_D3D12_DestroyParameters(DLSSQueryFeature.CapabilityParameters);
-			UE_LOG(LogDLSSNGXD3D12RHI, Log, TEXT("NVSDK_NGX_D3D12_DestroyParameters -> (%u %s)"), Result, GetNGXResultAsString(Result));
-		}
-		ID3D12Device* Direct3DDevice = D3D12RHI->GetAdapter().GetD3DDevice();
-		Result = NVSDK_NGX_D3D12_Shutdown1(Direct3DDevice);
-		UE_LOG(LogDLSSNGXD3D12RHI, Log, TEXT("NVSDK_NGX_D3D12_Shutdown1 -> (%u %s)"), Result, GetNGXResultAsString(Result));
-		bNGXInitialized = false;
-	}
-	UE_LOG(LogDLSSNGXD3D12RHI, Log, TEXT("%s Leave"), ANSI_TO_TCHAR(__FUNCTION__));
+	UE_LOG(LogODID3D12RHI, Log, TEXT("%s Enter"), ANSI_TO_TCHAR(__FUNCTION__));
+	
+	UE_LOG(LogODID3D12RHI, Log, TEXT("%s Leave"), ANSI_TO_TCHAR(__FUNCTION__));
 }
-void FODID3D12RHI::CreateDMLResources(){
+ODI_Result FODID3D12RHI::CreateDMLResources(){
 	// initialize once
 	if (m_dmlDevice == nullptr) {
 		if (_Debug)
-			DMLCreateDevice(m_d3dDevice.Get(), DML_CREATE_DEVICE_FLAG_DEBUG, IID_PPV_ARGS(&m_dmlDevice));
+			DMLCreateDevice(m_d3dDevice, DML_CREATE_DEVICE_FLAG_DEBUG, IID_PPV_ARGS(&m_dmlDevice));
 		else
-			DMLCreateDevice(m_d3dDevice.Get(), DML_CREATE_DEVICE_FLAG_NONE, IID_PPV_ARGS(&m_dmlDevice));
+			DMLCreateDevice(m_d3dDevice, DML_CREATE_DEVICE_FLAG_NONE, IID_PPV_ARGS(&m_dmlDevice));
 
 
 		DML_FEATURE_QUERY_TENSOR_DATA_TYPE_SUPPORT fp16Query = { DML_TENSOR_DATA_TYPE_FLOAT16 };
@@ -148,23 +192,26 @@ void FODID3D12RHI::CreateDMLResources(){
 
 		if (!fp16Supported.IsSupported)
 		{
-			throw std::exception("Current driver doesn't support FP16, which is required.");
+			UE_LOG(LogODID3D12RHI, Log, TEXT("Current driver doesn't support FP16, which is required."));
+			return ODI_Result::ODI_Result_Fail;
 		}
 		m_dmlDevice->CreateCommandRecorder(IID_PPV_ARGS(&m_dmlCommandRecorder));
 	}
 	m_dmlDescriptorHeap = std::make_unique<DescriptorHeapWrapper>(
-		m_d3dDevice.Get(),
+		m_d3dDevice,
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
 		D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
 		MAX_DESCRIPTOR_COUNT);
 	m_currentDescriptorTopIndex = 0;
+
+	return ODI_Result::ODI_Result_Success;
 }
 
 // called in Network
-void FODID3D12RHI::ParseAndUploadModelData(const std::wstring& path_to_onnx, const std::string& modelName) {
-	m_modelNameToResourceInfo[modelName] = ModelInfo();
+ODI_Result FODID3D12RHI::ParseAndUploadModelData(const std::wstring& path_to_onnx, const std::string& model_name) {
+	m_modelNameToResourceInfo[model_name] = ModelInfo();
 
-	auto& currOnnxInfo = m_modelNameToResourceInfo[modelName];
+	auto& currOnnxInfo = m_modelNameToResourceInfo[model_name];
 
 	// start to parse onnx file
 	std::map<std::string, ONNX_PARSER::TensorInfo> inputMap;
@@ -326,8 +373,12 @@ void FODID3D12RHI::ParseAndUploadModelData(const std::wstring& path_to_onnx, con
 
 
 		// TODO: only support single output
-		if (modelOutputNum != 1)
-			throw std::exception("Only single output is supported.");
+		if (modelOutputNum != 1){
+			UE_LOG(LogODID3D12RHI, Log, TEXT("Only single output is supported."));
+			// throw std::exception("Only single output is supported.");
+			return ODI_Result::ODI_Result_Fail;
+		}
+		
 
 		for (auto& outputPair : outputMap) {
 			auto& output = outputPair.second;
@@ -372,13 +423,15 @@ void FODID3D12RHI::ParseAndUploadModelData(const std::wstring& path_to_onnx, con
 
 		// Submit resource copy to command list
 		UpdateSubresources(m_commandList.Get(), currOnnxInfo.modelOperatorWeights.Get(), currOnnxInfo.scratchResource.Get(), 0, 0, 1, &weightsData);
+	
+		// TODO: barrier
 	}
+	return ODI_Result::ODI_Result_Success;
 }
-void FODID3D12RHI::InitializeNewModel(const std::string& modelName){
-	auto& currOnnxInfo = m_modelNameToResourceInfo[modelName];
+ODI_Result FODID3D12RHI::InitializeNewModel(const std::string& model_name){
+	auto& currOnnxInfo = m_modelNameToResourceInfo[model_name];
 	auto& weightsBinding = currOnnxInfo.weightsBinding;
 	auto modelInputNum = currOnnxInfo.modelInputNum;
-
 
 	m_dmlDevice->CreateOperatorInitializer(1, currOnnxInfo.dmlGraph.GetAddressOf(), IID_PPV_ARGS(&currOnnxInfo.dmlOpInitializer));
 
@@ -501,9 +554,11 @@ void FODID3D12RHI::InitializeNewModel(const std::string& modelName){
 	m_dmlDevice->CreateBindingTable(&tableDesc, IID_PPV_ARGS(&currOnnxInfo.dmlBindingTable));
 
 	// ForceCPUSync(); // TODO: sync is required
-	
+
+	return ODI_Result::ODI_Result_Success;
 }
-void FODID3D12RHI::BindResources(){
+ODI_Result FODID3D12RHI::BindResources(const std::string& model_name){
+	auto & currOnnxInfo = m_modelNameToResourceInfo[model_name];
 	if (currOnnxInfo.PersAndTempResourceIsBinded){
 		return;
 	}
@@ -519,8 +574,10 @@ void FODID3D12RHI::BindResources(){
 		currOnnxInfo.dmlBindingTable->BindTemporaryResource(&DML_BINDING_DESC{ DML_BINDING_TYPE_BUFFER, &binding });
 	}
 	currOnnxInfo.PersAndTempResourceIsBinded = true;
+
+	return ODI_Result::ODI_Result_Success;
 }
-void FODID3D12RHI::ExecuteInfer(FRHICommandList& CmdList, const FRHIDLSSArguments& InArguments, FDLSSStateRef InDLSSState)
+ODI_Result FODID3D12RHI::ExecuteInference(FRHICommandList& CmdList, const FODIRHIInferArguments& InArguments)
 {
 	check(!IsRunningRHIInSeparateThread() || IsInRHIThread());
 
@@ -536,13 +593,13 @@ void FODID3D12RHI::ExecuteInfer(FRHICommandList& CmdList, const FRHIDLSSArgument
 	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetCommandContext().CommandListHandle.GraphicsCommandList();
 
 	auto & modelInputs = InArguments.ModelInputs;
-	auto & modelOutput = GetD3D12TextureFromRHITexture(InArguments.ModelOutput, InArguments.GPUNode)->GetResource()->GetResource();
+	auto & modelOutputResourcePointer = GetD3D12BufferFromRHIBuffer(InArguments.ModelOutput, InArguments.GPUNode)->GetResource()->GetResource();
 
 
 	ID3D12DescriptorHeap* pHeaps[] = { m_dmlDescriptorHeap->Heap() };
 	D3DGraphicsCommandList->SetDescriptorHeaps(_countof(pHeaps), pHeaps);
 	
-	auto& currOnnxInfo = m_modelNameToResourceInfo[modelName];
+	auto& currOnnxInfo = m_modelNameToResourceInfo[model_name];
 
 	auto modelInputNum = currOnnxInfo.modelInputNum;
 	auto modelOutputNum = currOnnxInfo.modelOutputNum;
@@ -562,7 +619,7 @@ void FODID3D12RHI::ExecuteInfer(FRHICommandList& CmdList, const FRHIDLSSArgument
 	
 	dmlBindingTable->BindInputs(currOnnxInfo.inputBindings.size(), currOnnxInfo.inputBindings.data());
 
-	DML_BUFFER_BINDING outputBinding = { modelOutput, 0, modelOutput->GetDesc().Width }; // TODO: buffer size might be larger than tensor size (because buffer is 16 byte aligned)
+	DML_BUFFER_BINDING outputBinding = { modelOutputResourcePointer, 0, modelOutputResourcePointer->GetDesc().Width }; // TODO: buffer size might be larger than tensor size (because buffer is 16 byte aligned)
 	dmlBindingTable->BindOutputs(1, &DML_BINDING_DESC{ DML_BINDING_TYPE_BUFFER, &outputBinding });
 
 	m_dmlCommandRecorder->RecordDispatch(D3DGraphicsCommandList.Get(), dmlGraph.Get(), dmlBindingTable.Get());
@@ -580,23 +637,31 @@ void FODID3D12RHI::ExecuteInfer(FRHICommandList& CmdList, const FRHIDLSSArgument
 
 	Device->GetCommandContext().StateCache.ForceSetComputeRootSignature();
 	// Device->GetCommandContext().StateCache.GetDescriptorCache()->SetCurrentCommandList(Device->GetCommandContext().CommandListHandle);
+	return ODI_Result::ODI_Result_Success;
 }
 
 /** IModuleInterface implementation */
 
-void FNGXD3D12RHIModule::StartupModule()
+void FODID3D12RHIModule::StartupModule()
 {
-	// NGXRHI module should be loaded to ensure logging state is initialized
-	FModuleManager::LoadModuleChecked<INGXRHIModule>(TEXT("NGXRHI"));
+	FString BaseDir = IPluginManager::Get().FindPlugin("ODI")->GetBaseDir();
+	FString DmlBinariesRoot = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/DirectML_1_9_1/bin/Win64/"));
+	DirectMLLibraryHandle = FPlatformProcess::GetDllHandle(*(DmlBinariesRoot + "DirectML.dll"));
+
+
+	// ODIRHI module should be loaded to ensure logging state is initialized
+	FModuleManager::LoadModuleChecked<IODIRHIModule>(TEXT("ODIRHI"));
 }
 
-void FNGXD3D12RHIModule::ShutdownModule()
+void FODID3D12RHIModule::ShutdownModule()
 {
+	FPlatformProcess::FreeDllHandle(DirectMLLibraryHandle);
+	DirectMLLibraryHandle = nullptr;
 }
 
-TUniquePtr<NGXRHI> FODID3D12RHIModule::CreateNGXRHI(const FNGXRHICreateArguments& Arguments)
+TUniquePtr<ODIRHI> FODID3D12RHIModule::CreateODIRHI(const FODIRHICreateArguments& Arguments)
 {
-	TUniquePtr<NGXRHI> Result(new FNGXD3D12RHI(Arguments));
+	TUniquePtr<ODIRHI> Result(new FODID3D12RHI(Arguments));
 	return Result;
 }
 
