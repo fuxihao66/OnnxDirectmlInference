@@ -208,7 +208,11 @@ ODI_Result FODID3D12RHI::CreateDMLResources(){
 }
 
 // called in Network
-ODI_Result FODID3D12RHI::ParseAndUploadModelData(const std::wstring& path_to_onnx, const std::string& model_name) {
+ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const std::wstring& path_to_onnx, const std::string& model_name) {
+	FD3D12Device* Device = D3D12RHI->GetAdapter().GetDevice(CmdList.GetGPUMask().ToIndex());
+	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetCommandContext().CommandListHandle.GraphicsCommandList();
+
+
 	m_modelNameToResourceInfo[model_name] = ModelInfo();
 
 	auto& currOnnxInfo = m_modelNameToResourceInfo[model_name];
@@ -422,13 +426,22 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(const std::wstring& path_to_onn
 			IID_PPV_ARGS(currOnnxInfo.scratchResource.ReleaseAndGetAddressOf()));
 
 		// Submit resource copy to command list
-		UpdateSubresources(m_commandList.Get(), currOnnxInfo.modelOperatorWeights.Get(), currOnnxInfo.scratchResource.Get(), 0, 0, 1, &weightsData);
+		UpdateSubresources(D3DGraphicsCommandList.Get(), currOnnxInfo.modelOperatorWeights.Get(), currOnnxInfo.scratchResource.Get(), 0, 0, 1, &weightsData);
 	
 		// TODO: barrier
 	}
 	return ODI_Result::ODI_Result_Success;
 }
 ODI_Result FODID3D12RHI::InitializeNewModel(const std::string& model_name){
+	ID3D12DescriptorHeap* PreviousHeaps[2] =
+	{
+		StateCache.GetDescriptorCache()->GetCurrentViewHeap()->GetHeap(),
+		StateCache.GetDescriptorCache()->GetCurrentSamplerHeap()->GetHeap(),
+	};
+	FD3D12Device* Device = D3D12RHI->GetAdapter().GetDevice(CmdList.GetGPUMask().ToIndex());
+	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetCommandContext().CommandListHandle.GraphicsCommandList();
+
+
 	auto& currOnnxInfo = m_modelNameToResourceInfo[model_name];
 	auto& weightsBinding = currOnnxInfo.weightsBinding;
 	auto modelInputNum = currOnnxInfo.modelInputNum;
@@ -442,7 +455,7 @@ ODI_Result FODID3D12RHI::InitializeNewModel(const std::string& model_name){
 
 	// Operator initialization dispatches will use this heap right away
 	ID3D12DescriptorHeap* pHeaps[] = { m_dmlDescriptorHeap->Heap() };
-	m_commandList->SetDescriptorHeaps(_countof(pHeaps), pHeaps);
+	D3DGraphicsCommandList->SetDescriptorHeaps(_countof(pHeaps), pHeaps);
 
 	// Create any persistent resources required for the operators.
 	if (executeBindingProps.PersistentResourceSize > 0)
@@ -545,7 +558,7 @@ ODI_Result FODID3D12RHI::InitializeNewModel(const std::string& model_name){
 	}
 
 	// Record the initialization
-	m_dmlCommandRecorder->RecordDispatch(m_commandList.Get(), currOnnxInfo.dmlOpInitializer.Get(), initBindingTable.Get());
+	m_dmlCommandRecorder->RecordDispatch(D3DGraphicsCommandList.Get(), currOnnxInfo.dmlOpInitializer.Get(), initBindingTable.Get());
 
 	
 
@@ -553,6 +566,10 @@ ODI_Result FODID3D12RHI::InitializeNewModel(const std::string& model_name){
 	tableDesc.SizeInDescriptors = executeBindingProps.RequiredDescriptorCount;
 	m_dmlDevice->CreateBindingTable(&tableDesc, IID_PPV_ARGS(&currOnnxInfo.dmlBindingTable));
 
+
+	D3DGraphicsCommandList->SetDescriptorHeaps(2, PreviousHeaps);
+
+	Device->GetCommandContext().StateCache.ForceSetComputeRootSignature();
 	// ForceCPUSync(); // TODO: sync is required
 
 	return ODI_Result::ODI_Result_Success;
@@ -610,7 +627,7 @@ ODI_Result FODID3D12RHI::ExecuteInference(FRHICommandList& CmdList, const FODIRH
 	std::vector<DML_BUFFER_BINDING> bufferBindings(modelInputs.size());
 	for (auto& input : modelInputs) { // because std::map is sorted
 
-		auto resourcePointer = GetD3D12TextureFromRHITexture(input.second, InArguments.GPUNode)->GetResource()->GetResource();
+		auto resourcePointer = GetD3D12BufferFromRHIBuffer(input.second, InArguments.GPUNode)->GetResource()->GetResource();
 		bufferBindings[inputIndex] = DML_BUFFER_BINDING{ resourcePointer }; // TODO: buffer size might be larger than tensor size (because buffer is 16 byte aligned)
 		currOnnxInfo.inputBindings[inputIndex] = { DML_BINDING_TYPE_BUFFER, &bufferBindings[inputIndex] };
 

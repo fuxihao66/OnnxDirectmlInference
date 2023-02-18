@@ -1,3 +1,5 @@
+#include "Network.h"
+#include "ODI.h"
 
 Network::Network(const std::wstring& onnx_file_path, const std::string& model_name){
     FODIModule* LocalODIModuleRef = &FModuleManager::LoadModuleChecked<FODIModule>("ODI"); // load module
