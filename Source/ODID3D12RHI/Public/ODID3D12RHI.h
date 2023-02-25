@@ -12,6 +12,7 @@ public:
 	/** IModuleInterface implementation */
 	virtual void StartupModule();
 	virtual void ShutdownModule();
+	void* DirectMLLibraryHandle;
 
 	/** IODIRHIModule implementation */
 	virtual TUniquePtr<ODIRHI> CreateODIRHI(const FODIRHICreateArguments& Arguments);

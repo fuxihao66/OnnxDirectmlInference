@@ -37,6 +37,14 @@ public class ODI : ModuleRules
 			new string[]
 			{
 				// ... add private dependencies that you statically link with here ...	
+				"Core",
+				"CoreUObject",
+				"EngineSettings",
+				"Engine",
+				"RenderCore",
+				"Renderer",
+				"RHI",
+				"ODIRHI",
 			}
 			);
 		

@@ -1,5 +1,5 @@
 #pragma once
-#include "../helper/pch.h"
+#include "helper/pch.h"
 //#include "OnnxDMLOperatorGenerator.h"
 
 inline void CheckReference(std::map<std::string, ONNX_PARSER::InitializerTensorInfo>& initializerMap, const std::string& name) {

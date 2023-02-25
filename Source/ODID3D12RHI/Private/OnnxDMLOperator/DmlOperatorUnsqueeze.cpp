@@ -1,4 +1,4 @@
-#include "../OnnxDMLCore/OperatorRegistration.h"
+#include "OperatorRegistration.h"
 
 namespace ODI
 {

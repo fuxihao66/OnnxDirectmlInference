@@ -35,6 +35,7 @@ public class ODID3D12RHI : ModuleRules
 					"RenderCore",
 					"RHI",
 					"D3D12RHI",
+					"ODIRHI",
 			}
 			);
 

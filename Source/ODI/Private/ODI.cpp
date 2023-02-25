@@ -1,14 +1,15 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "ODI.h"
-#include "Core.h"
-#include "Modules/ModuleManager.h"
+#include "CoreMinimal.h"
+#include "GeneralProjectSettings.h"
+
 #include "Interfaces/IPluginManager.h"
 //#include "Windows.h"
 
 
 #define LOCTEXT_NAMESPACE "FODIModule"
-
+DECLARE_LOG_CATEGORY_EXTERN(LogODI, Verbose, All);
 DEFINE_LOG_CATEGORY(LogODI);
 
 //DECLARE_LOG_CATEGORY_EXTERN(LogDML, Log, All);
@@ -21,11 +22,12 @@ void FODIModule::StartupModule()
 
 	const FString RHIName = GDynamicRHI->GetName();
 	const bool bIsDX12 = (RHIName == TEXT("D3D12"));
-	ODIRHIModuleName = nullptr;
 
 	if (bIsDX12)
 	{
 		const TCHAR* ODIRHIModuleName = TEXT("ODID3D12RHI");
+
+		const FString PluginBaseDir = IPluginManager::Get().FindPlugin(TEXT("ODI"))->GetBaseDir();
 
 		FODIRHICreateArguments Arguments;
 		Arguments.PluginBaseDir = PluginBaseDir;
@@ -45,7 +47,7 @@ void FODIModule::StartupModule()
 
 // TODO: make sure ODIRHI is not released before ODI is released
 ODIRHI* FODIModule::GetODIRHIRef(){
-	return ODIRHIExtensions;
+	return ODIRHIExtensions.Get();
 }
 
 // void FODIModule::CreateAndInitializeModel(){

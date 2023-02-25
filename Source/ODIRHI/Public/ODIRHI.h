@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "RendererInterface.h"
 #include "Runtime/Launch/Resources/Version.h"
+
+#include <map>
+
 typedef enum ODI_Result
 {
     ODI_Result_Success = 0x0,
@@ -24,7 +27,10 @@ struct FODIRHICreateArguments
 struct FODIRHIInferArguments
 {
 	std::map<std::string, FRHIBuffer*> InputBuffers;
-	FRHIBuffer* OutputBuffers = nullptr; 
+	FRHIBuffer* OutputBuffer = nullptr; 
+	std::string ModelName;
+	uint32 GPUNode = 0;
+	uint32 GPUVisibility = 0;
 };
 class ODIRHI
 {

@@ -3,7 +3,8 @@
 #pragma once
 
 #include "Modules/ModuleManager.h"
-
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 class FODIModule : public IModuleInterface
 {
 public:
@@ -14,6 +15,6 @@ public:
 	ODIRHI* GetODIRHIRef();
 private:
 	/** Handle to the test dll we will load */
-	void* DirectMLLibraryHandle;
-	ODIRHI* ODIRHIExtensions;
+	//void* DirectMLLibraryHandle;
+	TUniquePtr<ODIRHI> ODIRHIExtensions;
 };

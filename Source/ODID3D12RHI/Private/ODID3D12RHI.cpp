@@ -9,10 +9,12 @@
 
 #include "RHIValidationCommon.h"
 #include "GenericPlatform/GenericPlatformFile.h"
+#include "Interfaces/IPluginManager.h"
 
 #include "Common/OnnxParser.h"
 #include "OnnxDMLOperatorMapping.h"
 
+#include <unordered_map>
 
 #pragma comment(lib, "d3d12.lib")
 
@@ -264,7 +266,7 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const
 			auto& inputInfo = inputPair.second;
 			dml::TensorDimensions modelInputShape;
 
-			for (int i = 0; i < inputInfo.dims; i++) {
+			for (size_t i = 0; i < inputInfo.dims; i++) {
 				modelInputShape.push_back(inputInfo.shapes[i]);
 			}
 			auto modelInput = dml::InputTensor(graph, inputIndex, dml::TensorDesc(static_cast<DML_TENSOR_DATA_TYPE>(inputInfo.tensorType), modelInputShape, policy));
@@ -277,7 +279,7 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const
 
 			dml::TensorDimensions modelWeightShape;
 
-			for (int i = 0; i < initializerInfo.dims; i++) {
+			for (size_t i = 0; i < initializerInfo.dims; i++) {
 				modelWeightShape.push_back(initializerInfo.shapes[i]);
 			}
 
@@ -315,13 +317,13 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const
 			}
 
 			index = 0; // O(N^2), assuming no circle
-			for (int i = 0; i < nodeNum; i++) {
-				for (int j = 0; j < nodeNum; j++) {
+			for (size_t i = 0; i < nodeNum; i++) {
+				for (size_t j = 0; j < nodeNum; j++) {
 					if (tempGraph[j].dependencyNum == 0 && tempGraph[j].valid) {
 						sortedKey[index] = tempGraph[j].graphKey;
 						tempGraph[j].valid = false;
 
-						for (int k = 0; k < nodeNum; k++) {
+						for (size_t k = 0; k < nodeNum; k++) {
 							if (tempGraphEdge[j][k]) {
 								tempGraph[k].dependencyNum -= 1;
 							}
@@ -432,7 +434,7 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const
 	}
 	return ODI_Result::ODI_Result_Success;
 }
-ODI_Result FODID3D12RHI::InitializeNewModel(const std::string& model_name){
+ODI_Result FODID3D12RHI::InitializeNewModel(FRHICommandList& CmdList, const std::string& model_name){
 	ID3D12DescriptorHeap* PreviousHeaps[2] =
 	{
 		StateCache.GetDescriptorCache()->GetCurrentViewHeap()->GetHeap(),
@@ -610,7 +612,7 @@ ODI_Result FODID3D12RHI::ExecuteInference(FRHICommandList& CmdList, const FODIRH
 	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetCommandContext().CommandListHandle.GraphicsCommandList();
 
 	auto & modelInputs = InArguments.ModelInputs;
-	auto & modelOutputResourcePointer = GetD3D12BufferFromRHIBuffer(InArguments.ModelOutput, InArguments.GPUNode)->GetResource()->GetResource();
+	auto & modelOutputResourcePointer = D3D12RHI->RHIGetResource(InArguments.ModelOutput); // version >= 5.1
 
 
 	ID3D12DescriptorHeap* pHeaps[] = { m_dmlDescriptorHeap->Heap() };
@@ -627,7 +629,7 @@ ODI_Result FODID3D12RHI::ExecuteInference(FRHICommandList& CmdList, const FODIRH
 	std::vector<DML_BUFFER_BINDING> bufferBindings(modelInputs.size());
 	for (auto& input : modelInputs) { // because std::map is sorted
 
-		auto resourcePointer = GetD3D12BufferFromRHIBuffer(input.second, InArguments.GPUNode)->GetResource()->GetResource();
+		auto resourcePointer = D3D12RHI->RHIGetResource(input.second); //, InArguments.GPUNode)->GetResource()->GetResource();
 		bufferBindings[inputIndex] = DML_BUFFER_BINDING{ resourcePointer }; // TODO: buffer size might be larger than tensor size (because buffer is 16 byte aligned)
 		currOnnxInfo.inputBindings[inputIndex] = { DML_BINDING_TYPE_BUFFER, &bufferBindings[inputIndex] };
 

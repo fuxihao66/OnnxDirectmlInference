@@ -1,7 +1,12 @@
 #pragma once
 
-#include "ODI.h"
+#include "CoreMinimal.h"
+#include "SceneViewExtension.h"
+#include "RendererInterface.h"
+#include "RenderGraphUtils.h"
+
 #include "ODIRHI.h"
+#include <string>
 
 class Network{
 public:
@@ -11,7 +16,7 @@ public:
     bool CreateModelAndUploadData(FRDGBuilder& GraphBuilder);
     bool ExecuteInference(FRDGBuilder& GraphBuilder, std::map<std::string, FRDGBufferRef> InputBuffers, FRDGBufferRef OutputBuffer);
 private:
-    const std::string m_model_name;
-    const std::wstring m_onnx_file_path;
+    std::string m_model_name;
+    std::wstring m_onnx_file_path;
     ODIRHI* m_ODIRHIExtensions;
 };

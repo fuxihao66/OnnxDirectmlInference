@@ -38,6 +38,10 @@ public class ODIRHI : ModuleRules
 					"RHI",
 			}
 			);
+		if (ReadOnlyBuildVersion.Current.MajorVersion == 5)
+		{
+			PrivateDependencyModuleNames.Add("RHICore");
+		}
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{

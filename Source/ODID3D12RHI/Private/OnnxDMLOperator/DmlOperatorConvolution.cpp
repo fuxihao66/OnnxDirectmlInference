@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 // modified by fuxihao, 10/7/2022
-#include "../OnnxDMLCore/OperatorRegistration.h"
+#include "OperatorRegistration.h"
 
 namespace ODI
 {

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 //#include "precomp.h"
-#include "../OnnxDMLCore/OperatorRegistration.h"
+#include "OperatorRegistration.h"
 
 namespace ODI
 {
