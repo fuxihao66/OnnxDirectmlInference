@@ -105,7 +105,7 @@ public:
                 if (val < 0) {
                     val = inputShape[axis] + val;
                 }
-                else if (val >= inputShape[axis]) {
+                else if (val >= static_cast<int>(inputShape[axis])) {
                     val = inputShape[axis];
                 }
             };

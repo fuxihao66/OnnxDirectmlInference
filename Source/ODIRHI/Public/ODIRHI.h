@@ -36,10 +36,10 @@ class ODIRHI
 {
 public:
 	ODIRHI(const FODIRHICreateArguments& Arguments);
-    virtual ODI_Result ParseAndUploadModelData(FRHICommandList& CmdList, const std::wstring& path_to_onnx, const std::string& model_name);
-	virtual ODI_Result InitializeNewModel(FRHICommandList& CmdList, const std::string& model_name);
-	virtual ODI_Result BindResources(const std::string& model_name);
-	virtual ODI_Result ExecuteInference(FRHICommandList& CmdList, const FODIRHIInferArguments& InArguments);
+	virtual ODI_Result ParseAndUploadModelData(FRHICommandList& CmdList, const std::wstring& path_to_onnx, const std::string& model_name) { return ODI_Result::ODI_Result_Fail; }
+	virtual ODI_Result InitializeNewModel(FRHICommandList& CmdList, const std::string& model_name) { return ODI_Result::ODI_Result_Fail; }
+	virtual ODI_Result BindResources(const std::string& model_name) { return ODI_Result::ODI_Result_Fail; }
+	virtual ODI_Result ExecuteInference(FRHICommandList& CmdList, const FODIRHIInferArguments& InArguments) { return ODI_Result::ODI_Result_Fail; }
 
 	virtual ~ODIRHI();
 private:

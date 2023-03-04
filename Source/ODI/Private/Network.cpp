@@ -11,18 +11,21 @@ BEGIN_SHADER_PARAMETER_STRUCT(FBlankParameters, )
 END_SHADER_PARAMETER_STRUCT()
 
 BEGIN_SHADER_PARAMETER_STRUCT(FInferenceParameters, )
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput0)
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput1)
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput2)
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput3)
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput4)
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput5)
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput6)
-SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelOutput)
+//SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput0)
+//SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput1)
+//SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput2)
+//SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput3)
+//SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput4)
+//SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput5)
+//SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelInput6)
+//SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, ModelOutput)
+RDG_BUFFER_ACCESS(ModelInput0, ERHIAccess::UAVCompute)
+RDG_BUFFER_ACCESS(ModelInput1, ERHIAccess::UAVCompute)
+RDG_BUFFER_ACCESS(ModelOutput, ERHIAccess::UAVCompute)
 END_SHADER_PARAMETER_STRUCT()
 
-#define PARAMETER_MODELINPUT_SLOT(Parameter, index) \
-Parameter->ModelInput##index;
+//#define PARAMETER_MODELINPUT_SLOT(Parameter, index) \
+//Parameter->ModelInput##index;
 
 
 Network::Network(const std::wstring& onnx_file_path, const std::string& model_name){
@@ -66,28 +69,21 @@ bool Network::CreateModelAndUploadData(FRDGBuilder& GraphBuilder){
         });
         FRHICommandListExecutor::GetImmediateCommandList().BlockUntilGPUIdle(); 
     });
-
+	return true;
 }
 
 bool Network::ExecuteInference(FRDGBuilder& GraphBuilder, std::map<std::string, FRDGBufferRef> InputBuffers, FRDGBufferRef OutputBuffer){
 	FInferenceParameters* PassParameters = GraphBuilder.AllocParameters<FInferenceParameters>();
 
-
-	PARAMETER_MODELINPUT_SLOT(PassParameters, 0);
-	PARAMETER_MODELINPUT_SLOT(PassParameters, 1);
-	PARAMETER_MODELINPUT_SLOT(PassParameters, 2);
-	PARAMETER_MODELINPUT_SLOT(PassParameters, 3);
-	PARAMETER_MODELINPUT_SLOT(PassParameters, 4);
-	PARAMETER_MODELINPUT_SLOT(PassParameters, 5);
-
 	int inputIndex = 0;
-	for (auto it = InputBuffers.begin(); it != InputBuffers.end(); it++) {
-		BIND_INPUT_TO_PARAMETER(PassParameters, inputIndex, GraphBuilder.CreateUAV(it->second));
-		MARK_RESOURCE_AS_USED(PassParameters, inputIndex);
-		inputIndex += 1;
+	for (auto it = InputBuffers.begin(); it != InputBuffers.end(); it++) { // TODO: support only single input right now
+		PassParameters->ModelInput0 = it->second;
+		//inputIndex += 1;
+		break;
 	}
-	PassParameters->ModelOutput = GraphBuilder.CreateUAV(OutputBuffer);
-	PassParameters->ModelOutput->MarkResourceAsUsed();
+
+	//PassParameters->ModelOutput = GraphBuilder.CreateUAV(OutputBuffer);
+	PassParameters->ModelOutput = OutputBuffer;
 	
     GraphBuilder.AddPass(
         RDG_EVENT_NAME("Execute OnnxDML Inference"),
@@ -95,18 +91,24 @@ bool Network::ExecuteInference(FRDGBuilder& GraphBuilder, std::map<std::string, 
         ERDGPassFlags::Compute | ERDGPassFlags::Raster | ERDGPassFlags::SkipRenderPass,
         [LocalODIRHIExtensions = m_ODIRHIExtensions, model_name = m_model_name, PassParameters, InputBuffers, OutputBuffer](FRHICommandListImmediate& RHICmdList)
     {
+
+		PassParameters->ModelInput0->MarkResourceAsUsed();
+		PassParameters->ModelOutput->MarkResourceAsUsed();
+
+
         FODIRHIInferArguments Arguments;
-		
 
         Arguments.ModelName = model_name;
-        Arguments.OutputBuffer = OutputBuffer->GetRHI();
+        Arguments.OutputBuffer = PassParameters->ModelOutput->GetRHI();
 
+		// TODO: only single model input
         for (auto it = InputBuffers.begin(); it != InputBuffers.end(); it++){
             Arguments.InputBuffers[it->first] = it->second->GetRHI();
-			RHICmdList.TransitionResource(ERHIAccess::UAVMask, it->second);
+			//RHICmdList.TransitionResource(ERHIAccess::UAVMask, it->second);
+			break;
         }
 
-		FD3D12DynamicRHI::TransitionResource(InCommandListHandle, Resource, D3D12_RESOURCE_STATE_TBD, DesiredState, Subresource, FD3D12DynamicRHI::ETransitionMode::Validate);
+		/*FD3D12DynamicRHI::TransitionResource(InCommandListHandle, Resource, D3D12_RESOURCE_STATE_TBD, DesiredState, Subresource, FD3D12DynamicRHI::ETransitionMode::Validate);*/
 
 
         RHICmdList.EnqueueLambda(
@@ -121,4 +123,6 @@ bool Network::ExecuteInference(FRDGBuilder& GraphBuilder, std::map<std::string, 
 			LocalODIRHIExtensions->ExecuteInference(Cmd, Arguments);
         });
     });
+
+	return true;
 }

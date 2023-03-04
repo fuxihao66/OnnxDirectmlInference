@@ -13,6 +13,7 @@ public:
 	virtual void StartupModule();
 	virtual void ShutdownModule();
 	void* DirectMLLibraryHandle;
+	void* OnnxParserLibraryHandle;
 
 	/** IODIRHIModule implementation */
 	virtual TUniquePtr<ODIRHI> CreateODIRHI(const FODIRHICreateArguments& Arguments);

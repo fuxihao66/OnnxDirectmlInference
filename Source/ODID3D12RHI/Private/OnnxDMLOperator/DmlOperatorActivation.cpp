@@ -175,8 +175,8 @@ public:
 
         dml::detail::GraphBuilder* builder = m_input.Impl()->GetGraphBuilder();
 
-        inputTensor = m_input.Impl()->GetOutputDesc();
-        outputTensor = dml::TensorDesc(inputTensor.dataType, inputTensor.sizes, builder->GetTensorPolicy());
+		dml::TensorDesc inputTensor = m_input.Impl()->GetOutputDesc();
+		dml::TensorDesc outputTensor = dml::TensorDesc(inputTensor.dataType, inputTensor.sizes, builder->GetTensorPolicy());
 
         if (operatorType == DML_OPERATOR_ACTIVATION_PARAMETERIZED_RELU)
         {
@@ -223,8 +223,8 @@ private:
     dml::Expression m_input;
     std::optional<dml::Expression> m_slope;
     ActivationOperatorDescUnion operatorDesc;
-    dml::TensorDesc inputTensor;
-    dml::TensorDesc outputTensor;
+    /*dml::TensorDesc inputTensor;
+    dml::TensorDesc outputTensor;*/
     // DML_OPERATOR_TYPE remappedOperatorType(const DML_OPERATOR_TYPE operatorType) const {
     //     switch (operatorType)
     //     {

@@ -6,8 +6,9 @@
 #include "D3D12Resources.h"
 #include "D3D12Viewport.h"
 #include "D3D12ConstantBuffer.h"
-
+#include "D3D12CommandContext.h"
 #include "RHIValidationCommon.h"
+#include "ID3D12DynamicRHI.h"
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "Interfaces/IPluginManager.h"
 
@@ -16,7 +17,7 @@
 
 #include <unordered_map>
 
-#pragma comment(lib, "d3d12.lib")
+//#pragma comment(lib, "d3d12.lib")
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogODID3D12RHI, Log, All);
@@ -212,8 +213,11 @@ ODI_Result FODID3D12RHI::CreateDMLResources(){
 // called in Network
 ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const std::wstring& path_to_onnx, const std::string& model_name) {
 	FD3D12Device* Device = D3D12RHI->GetAdapter().GetDevice(CmdList.GetGPUMask().ToIndex());
-	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetCommandContext().CommandListHandle.GraphicsCommandList();
+	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetDefaultCommandContext().GraphicsCommandList().Get();
 
+	// New API
+	/*const uint32 DeviceIndex = D3D12RHI->RHIGetResourceDeviceIndex(InArguments.InputColor);
+	ID3D12GraphicsCommandList* D3DGraphicsCommandList = D3D12RHI->RHIGetGraphicsCommandList(DeviceIndex);*/
 
 	m_modelNameToResourceInfo[model_name] = ModelInfo();
 
@@ -364,7 +368,7 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const
 				currentInputIndex += 1;
 			}
 			else {
-				auto expression = CreateExpression(expressionMap, graphInitializers, opNode, graph, opsetVersion);
+				auto expression = ODI::CreateExpression(expressionMap, graphInitializers, opNode, graph, opsetVersion);
 				expressionMap[graphNodeKey] = expression;
 			}
 
@@ -428,21 +432,21 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const
 			IID_PPV_ARGS(currOnnxInfo.scratchResource.ReleaseAndGetAddressOf()));
 
 		// Submit resource copy to command list
-		UpdateSubresources(D3DGraphicsCommandList.Get(), currOnnxInfo.modelOperatorWeights.Get(), currOnnxInfo.scratchResource.Get(), 0, 0, 1, &weightsData);
+		UpdateSubresources(D3DGraphicsCommandList, currOnnxInfo.modelOperatorWeights.Get(), currOnnxInfo.scratchResource.Get(), 0, 0, 1, &weightsData);
 	
 		// TODO: barrier
 	}
 	return ODI_Result::ODI_Result_Success;
 }
 ODI_Result FODID3D12RHI::InitializeNewModel(FRHICommandList& CmdList, const std::string& model_name){
-	ID3D12DescriptorHeap* PreviousHeaps[2] =
+	/*ID3D12DescriptorHeap* PreviousHeaps[2] =
 	{
 		StateCache.GetDescriptorCache()->GetCurrentViewHeap()->GetHeap(),
 		StateCache.GetDescriptorCache()->GetCurrentSamplerHeap()->GetHeap(),
-	};
+	};*/
+	
 	FD3D12Device* Device = D3D12RHI->GetAdapter().GetDevice(CmdList.GetGPUMask().ToIndex());
-	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetCommandContext().CommandListHandle.GraphicsCommandList();
-
+	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetDefaultCommandContext().GraphicsCommandList().Get();
 
 	auto& currOnnxInfo = m_modelNameToResourceInfo[model_name];
 	auto& weightsBinding = currOnnxInfo.weightsBinding;
@@ -560,7 +564,7 @@ ODI_Result FODID3D12RHI::InitializeNewModel(FRHICommandList& CmdList, const std:
 	}
 
 	// Record the initialization
-	m_dmlCommandRecorder->RecordDispatch(D3DGraphicsCommandList.Get(), currOnnxInfo.dmlOpInitializer.Get(), initBindingTable.Get());
+	m_dmlCommandRecorder->RecordDispatch(D3DGraphicsCommandList, currOnnxInfo.dmlOpInitializer.Get(), initBindingTable.Get());
 
 	
 
@@ -568,18 +572,21 @@ ODI_Result FODID3D12RHI::InitializeNewModel(FRHICommandList& CmdList, const std:
 	tableDesc.SizeInDescriptors = executeBindingProps.RequiredDescriptorCount;
 	m_dmlDevice->CreateBindingTable(&tableDesc, IID_PPV_ARGS(&currOnnxInfo.dmlBindingTable));
 
+	//D3DGraphicsCommandList->SetDescriptorHeaps(2, PreviousHeaps);
+	Device->GetDefaultCommandContext().StateCache.GetDescriptorCache()->SetDescriptorHeaps(true);
+	Device->GetDefaultCommandContext().StateCache.ForceSetComputeRootSignature();
 
-	D3DGraphicsCommandList->SetDescriptorHeaps(2, PreviousHeaps);
+	//D3D12RHI->RHIFinishExternalComputeWork(DeviceIndex, D3DGraphicsCommandList); // New API
 
-	Device->GetCommandContext().StateCache.ForceSetComputeRootSignature();
-	// ForceCPUSync(); // TODO: sync is required
+	// ForceCPUSync(); 
+	// TODO: sync is required
 
 	return ODI_Result::ODI_Result_Success;
 }
 ODI_Result FODID3D12RHI::BindResources(const std::string& model_name){
 	auto & currOnnxInfo = m_modelNameToResourceInfo[model_name];
 	if (currOnnxInfo.PersAndTempResourceIsBinded){
-		return;
+		return ODI_Result::ODI_Result_Success;
 	}
 	if (currOnnxInfo.modelPersistentResource)
 	{
@@ -602,23 +609,25 @@ ODI_Result FODID3D12RHI::ExecuteInference(FRHICommandList& CmdList, const FODIRH
 
 	// const std::map<std::string, FRHITextureRef> InArguments.ModelInputs
 	
-	ID3D12DescriptorHeap* PreviousHeaps[2] =
+	/*ID3D12DescriptorHeap* PreviousHeaps[2] =
 	{
 		StateCache.GetDescriptorCache()->GetCurrentViewHeap()->GetHeap(),
 		StateCache.GetDescriptorCache()->GetCurrentSamplerHeap()->GetHeap(),
-	};
+	};*/
 
+	/*FD3D12Device* Device = D3D12RHI->GetAdapter().GetDevice(CmdList.GetGPUMask().ToIndex());
+	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetCommandContext().CommandListHandle.GraphicsCommandList();*/
 	FD3D12Device* Device = D3D12RHI->GetAdapter().GetDevice(CmdList.GetGPUMask().ToIndex());
-	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetCommandContext().CommandListHandle.GraphicsCommandList();
+	ID3D12GraphicsCommandList* D3DGraphicsCommandList = Device->GetDefaultCommandContext().GraphicsCommandList().Get();
 
-	auto & modelInputs = InArguments.ModelInputs;
-	auto & modelOutputResourcePointer = D3D12RHI->RHIGetResource(InArguments.ModelOutput); // version >= 5.1
+	auto & modelInputs = InArguments.InputBuffers;
+	auto modelOutputResourcePointer = D3D12RHI->RHIGetResource(InArguments.OutputBuffer); // version >= 5.1
 
 
 	ID3D12DescriptorHeap* pHeaps[] = { m_dmlDescriptorHeap->Heap() };
 	D3DGraphicsCommandList->SetDescriptorHeaps(_countof(pHeaps), pHeaps);
 	
-	auto& currOnnxInfo = m_modelNameToResourceInfo[model_name];
+	auto& currOnnxInfo = m_modelNameToResourceInfo[InArguments.ModelName];
 
 	auto modelInputNum = currOnnxInfo.modelInputNum;
 	auto modelOutputNum = currOnnxInfo.modelOutputNum;
@@ -641,20 +650,23 @@ ODI_Result FODID3D12RHI::ExecuteInference(FRHICommandList& CmdList, const FODIRH
 	DML_BUFFER_BINDING outputBinding = { modelOutputResourcePointer, 0, modelOutputResourcePointer->GetDesc().Width }; // TODO: buffer size might be larger than tensor size (because buffer is 16 byte aligned)
 	dmlBindingTable->BindOutputs(1, &DML_BINDING_DESC{ DML_BINDING_TYPE_BUFFER, &outputBinding });
 
-	m_dmlCommandRecorder->RecordDispatch(D3DGraphicsCommandList.Get(), dmlGraph.Get(), dmlBindingTable.Get());
+	m_dmlCommandRecorder->RecordDispatch(D3DGraphicsCommandList, dmlGraph.Get(), dmlBindingTable.Get());
 	// execute
 
-	Device->GetCommandContext().CommandListHandle.AddUAVBarrier();
+	Device->GetDefaultCommandContext().AddUAVBarrier();
 
 
-	if (Device->GetCommandContext().IsDefaultContext())
+	/*if (Device->GetDefaultCommandContext().IsDefaultContext())
 	{
 		Device->RegisterGPUWork(1);
-	}
+	}*/
 
-	D3DGraphicsCommandList->SetDescriptorHeaps(2, PreviousHeaps);
+	//D3DGraphicsCommandList->SetDescriptorHeaps(2, PreviousHeaps);
+	Device->GetDefaultCommandContext().StateCache.GetDescriptorCache()->SetDescriptorHeaps(true);
+	Device->GetDefaultCommandContext().StateCache.ForceSetComputeRootSignature();
 
-	Device->GetCommandContext().StateCache.ForceSetComputeRootSignature();
+	//D3D12RHI->RHIFinishExternalComputeWork(DeviceIndex, D3DGraphicsCommandList); // New API
+
 	// Device->GetCommandContext().StateCache.GetDescriptorCache()->SetCurrentCommandList(Device->GetCommandContext().CommandListHandle);
 	return ODI_Result::ODI_Result_Success;
 }
@@ -667,6 +679,9 @@ void FODID3D12RHIModule::StartupModule()
 	FString DmlBinariesRoot = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/DirectML_1_9_1/bin/Win64/"));
 	DirectMLLibraryHandle = FPlatformProcess::GetDllHandle(*(DmlBinariesRoot + "DirectML.dll"));
 
+	FString OnnxParserBinariesRoot = FPaths::Combine(*BaseDir, TEXT("Source/ODID3D12RHI/OnnxParser/"));
+	OnnxParserLibraryHandle = FPlatformProcess::GetDllHandle(*(OnnxParserBinariesRoot + "OnnxParser.dll"));
+
 
 	// ODIRHI module should be loaded to ensure logging state is initialized
 	FModuleManager::LoadModuleChecked<IODIRHIModule>(TEXT("ODIRHI"));
@@ -676,6 +691,9 @@ void FODID3D12RHIModule::ShutdownModule()
 {
 	FPlatformProcess::FreeDllHandle(DirectMLLibraryHandle);
 	DirectMLLibraryHandle = nullptr;
+
+	FPlatformProcess::FreeDllHandle(OnnxParserLibraryHandle);
+	OnnxParserLibraryHandle = nullptr;
 }
 
 TUniquePtr<ODIRHI> FODID3D12RHIModule::CreateODIRHI(const FODIRHICreateArguments& Arguments)
