@@ -44,7 +44,8 @@ public class ODI : ModuleRules
 				"RenderCore",
 				"Renderer",
 				"RHI",
-				"ODIRHI",
+				//"ODIRHI",
+				"ODID3D12RHI"
 			}
 			);
 		

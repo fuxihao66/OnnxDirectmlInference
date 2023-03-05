@@ -1,11 +1,61 @@
 #pragma once
 
 #include "Modules/ModuleManager.h"
-#include "ODIRHI.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Interfaces/IPluginManager.h"
+//#include "ODIRHI.h"
+
+//#include "ID3D12DynamicRHI.h"
+
+
+
+#include <string>
+#include <map>
+#include <unordered_map>
+
 #define MAX_DESCRIPTOR_COUNT 100000
 
+typedef enum ODI_Result
+{
+	ODI_Result_Success = 0x0,
 
-class FODID3D12RHIModule final : public IODIRHIModule
+	ODI_Result_Fail = 0x1,
+} ODI_Result;
+
+struct FODIRHICreateArguments
+{
+	FString PluginBaseDir;
+	FDynamicRHI* DynamicRHI = nullptr;
+	FString UnrealEngineVersion;
+	FString UnrealProjectID;
+};
+
+
+struct FODIRHIInferArguments
+{
+	std::map<std::string, FRHIBuffer*> InputBuffers;
+	FRHIBuffer* OutputBuffer = nullptr;
+	std::string ModelName;
+	uint32 GPUNode = 0;
+	uint32 GPUVisibility = 0;
+};
+
+class ODIRHI
+{
+public:
+	ODIRHI(const FODIRHICreateArguments& Arguments) {};
+	virtual ODI_Result ParseAndUploadModelData(FRHICommandList& CmdList, const std::wstring& path_to_onnx, const std::string& model_name) { return ODI_Result::ODI_Result_Fail; }
+	virtual ODI_Result InitializeNewModel(FRHICommandList& CmdList, const std::string& model_name) { return ODI_Result::ODI_Result_Fail; }
+	virtual ODI_Result BindResources(const std::string& model_name) { return ODI_Result::ODI_Result_Fail; }
+	virtual ODI_Result ExecuteInference(FRHICommandList& CmdList, const FODIRHIInferArguments& InArguments) { return ODI_Result::ODI_Result_Fail; }
+
+	virtual ~ODIRHI() {};
+protected:
+
+	//FDynamicRHI* DynamicRHI = nullptr;
+};
+
+class FODID3D12RHIModule final : public IModuleInterface
 {
 public:
 
@@ -18,3 +68,4 @@ public:
 	/** IODIRHIModule implementation */
 	virtual TUniquePtr<ODIRHI> CreateODIRHI(const FODIRHICreateArguments& Arguments);
 };
+

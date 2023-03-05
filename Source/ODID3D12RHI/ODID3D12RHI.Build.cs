@@ -10,14 +10,22 @@ public class ODID3D12RHI : ModuleRules
 		bUseUnity = false;
 		CppStandard = CppStandardVersion.Cpp17;
 		PublicIncludePaths.AddRange(
-			new string[] {
-			}
-			);
+		new string[] {
+				//Path.Combine(EngineDirectory,"Source/Runtime/D3D12RHI/Public"),
+				Path.Combine(EngineDirectory,"Source/Runtime/D3D12RHI/Private"),
+				Path.Combine(EngineDirectory,"Source/Runtime/D3D12RHI/Private/Windows"),
+				Path.Combine(Target.WindowsPlatform.WindowsSdkDir,
+												"Include",
+												Target.WindowsPlatform.WindowsSdkVersion,
+												"cppwinrt")
+		}
+		);
 		PublicSystemLibraries.AddRange(new string[] { "shlwapi.lib", "runtimeobject.lib" });
 
 
 		PrivateIncludePaths.AddRange(
 		new string[] {
+				//Path.Combine(EngineDirectory,"Source/Runtime/D3D12RHI/Public"),
 				Path.Combine(EngineDirectory,"Source/Runtime/D3D12RHI/Private"),
 				Path.Combine(EngineDirectory,"Source/Runtime/D3D12RHI/Private/Windows"),
 				Path.Combine(Target.WindowsPlatform.WindowsSdkDir,        
@@ -56,7 +64,7 @@ public class ODID3D12RHI : ModuleRules
 					"Renderer",
 					"RHI",
 					"D3D12RHI",
-					"ODIRHI",
+					//"ODIRHI",
 			}
 			);
 
@@ -66,6 +74,9 @@ public class ODID3D12RHI : ModuleRules
 		}
 		// those come from the D3D12RHI
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+
+		PublicDefinitions.Add("NV_AFTERMATH=0");
+		PublicDefinitions.Add("INTEL_EXTENSIONS=0");
 		// AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAPI");
 		// AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAftermath");
 		// AddEngineThirdPartyPrivateStaticDependencies(Target, "IntelMetricsDiscovery");

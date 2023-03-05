@@ -2,6 +2,7 @@
 	"BuildId": "acaa0064-2076-4750-9fef-fd63c0f1cf4d",
 	"Modules": 
 	{
-		"ODI": "UnrealEditor-ODI.dll"
+		"ODI": "UnrealEditor-ODI.dll",
+		"ODID3D12RHI": "UnrealEditor-ODID3D12RHI.dll"
 	}
 }
