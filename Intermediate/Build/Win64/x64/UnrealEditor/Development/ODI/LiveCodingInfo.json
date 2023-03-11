@@ -1,0 +1,9 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.ODI.cpp.obj": [
+			"Network.cpp.obj",
+			"ODI.cpp.obj"
+		]
+	}
+}

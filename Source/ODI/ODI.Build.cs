@@ -44,8 +44,7 @@ public class ODI : ModuleRules
 				"RenderCore",
 				"Renderer",
 				"RHI",
-				//"ODIRHI",
-				"ODID3D12RHI"
+				"ODIRHI",
 			}
 			);
 		
@@ -54,6 +53,7 @@ public class ODI : ModuleRules
 			new string[]
 			{
 				// ... add any modules that your module loads dynamically here ...
+				"ODID3D12RHI"
 			}
 			);
 	}

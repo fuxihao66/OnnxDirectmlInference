@@ -5,7 +5,7 @@
 #include "RendererInterface.h"
 #include "RenderGraphUtils.h"
 
-#include "ODID3D12RHI.h"
+#include "ODIRHI.h"
 #include <string>
 
 class Network{
@@ -18,5 +18,5 @@ public:
 private:
     std::string m_model_name;
     std::wstring m_onnx_file_path;
-	ODIRHI* m_ODIRHIExtensions;
+    ODIRHI* m_ODIRHIExtensions;
 };

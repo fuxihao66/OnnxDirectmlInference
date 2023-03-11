@@ -5,9 +5,6 @@
 #include "Modules/ModuleManager.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-
-class ODIRHI;
-
 class FODIModule : public IModuleInterface
 {
 public:

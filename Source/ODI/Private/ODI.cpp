@@ -2,10 +2,6 @@
 
 #include "ODI.h"
 #include "CoreMinimal.h"
-
-#include "ODID3D12RHI.h"
-
-
 #include "GeneralProjectSettings.h"
 
 #include "Interfaces/IPluginManager.h"
@@ -40,7 +36,7 @@ void FODIModule::StartupModule()
 		Arguments.UnrealEngineVersion = FString::Printf(TEXT("%u.%u"), FEngineVersion::Current().GetMajor(), FEngineVersion::Current().GetMinor());
 		Arguments.UnrealProjectID = GetDefault<UGeneralProjectSettings>()->ProjectID.ToString();
 
-		FODID3D12RHIModule* ODIRHIModule = &FModuleManager::LoadModuleChecked<FODID3D12RHIModule>(ODIRHIModuleName);
+		IODIRHIModule* ODIRHIModule = &FModuleManager::LoadModuleChecked<IODIRHIModule>(ODIRHIModuleName);
 		ODIRHIExtensions = ODIRHIModule->CreateODIRHI(Arguments);
 	}
 	else{
