@@ -48,6 +48,9 @@ Network::Network(const std::wstring& onnx_file_path, const std::string& model_na
 
 
 bool Network::CreateModelAndUploadData(FRDGBuilder& GraphBuilder){
+    if (dataHasUploaded)
+        return true;
+
 	FBlankParameters* PassParameters = GraphBuilder.AllocParameters<FBlankParameters>();
 
     GraphBuilder.AddPass(
@@ -71,6 +74,8 @@ bool Network::CreateModelAndUploadData(FRDGBuilder& GraphBuilder){
     });
 
     FRHICommandListExecutor::GetImmediateCommandList().BlockUntilGPUIdle();
+
+    dataHasUploaded = true;
 
 	return true;
 }
