@@ -1,9 +1,9 @@
 #pragma once
-#ifdef ONNXPARSER_EXPORTS
-#define ONNXPARSER_API __declspec(dllexport)
-#else
-#define ONNXPARSER_API __declspec(dllimport)
-#endif
+// #ifdef ONNXPARSER_EXPORTS
+// #define ONNXPARSER_API __declspec(dllexport)
+// #else
+// #define ONNXPARSER_API __declspec(dllimport)
+// #endif
 namespace ONNX_PARSER {
 
 	/*enum TensorProto_DataType : int {

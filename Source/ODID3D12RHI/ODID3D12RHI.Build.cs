@@ -27,12 +27,12 @@ public class ODID3D12RHI : ModuleRules
 		}
 		);
 
-		string LibDirPath = Path.Combine(ModuleDirectory, "OnnxParser");
+		// string LibDirPath = Path.Combine(ModuleDirectory, "OnnxParser");
 
-		PublicAdditionalLibraries.Add(Path.Combine(LibDirPath, "OnnxParser.lib"));
-		PublicDelayLoadDLLs.Add("OnnxParser.dll");
-		string DLLFullPath = Path.Combine(LibDirPath, "OnnxParser.dll");
-		RuntimeDependencies.Add(DLLFullPath);
+		// PublicAdditionalLibraries.Add(Path.Combine(LibDirPath, "OnnxParser.lib"));
+		// PublicDelayLoadDLLs.Add("OnnxParser.dll");
+		// string DLLFullPath = Path.Combine(LibDirPath, "OnnxParser.dll");
+		// RuntimeDependencies.Add(DLLFullPath);
 
 
 		PublicDependencyModuleNames.AddRange(
@@ -40,7 +40,8 @@ public class ODID3D12RHI : ModuleRules
 			{
 				"Core",
 				"DirectML_1_9_1",
-				"Projects"
+				"Projects",
+				"OnnxParser"
 			}
 			);
 			

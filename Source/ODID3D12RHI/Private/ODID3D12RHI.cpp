@@ -12,7 +12,7 @@
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "Interfaces/IPluginManager.h"
 
-#include "Common/OnnxParser.h"
+#include "OnnxParser.h"
 #include "OnnxDMLOperatorMapping.h"
 
 #include <unordered_map>

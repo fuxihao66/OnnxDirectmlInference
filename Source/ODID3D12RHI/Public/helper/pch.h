@@ -87,6 +87,6 @@
 
 //#include "DescriptorHeap.h"
 
-#include "../Common/Common.h"
-#include "../Common/OnnxParser.h"
-#include "Common/Float16Compressor.h"
+#include "Common.h"
+#include "OnnxParser.h"
+#include "Float16Compressor.h"
