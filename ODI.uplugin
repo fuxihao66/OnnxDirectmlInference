@@ -17,12 +17,12 @@
 	"Modules": [
 		{
 			"Name": "ODI",
-			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"Type": "RuntimeAndProgram",
+			"LoadingPhase": "PostEngineInit"
 		},
 		{
 			"Name": "ODIRHI",
-			"Type": "Runtime",
+			"Type": "RuntimeAndProgram",
 			"LoadingPhase": "PostEngineInit",
 			"PlatformAllowList": [
 				"Win64"
@@ -30,8 +30,16 @@
 		},
 		{
 			"Name": "ODID3D12RHI",
-			"Type": "Runtime",
+			"Type": "RuntimeAndProgram",
 			"LoadingPhase": "PostEngineInit",
+			"PlatformAllowList": [
+				"Win64"
+			]
+		},
+		{
+			"Name": "TextureBufferCopy",
+			"Type": "RuntimeAndProgram",
+			"LoadingPhase": "PostConfigInit",
 			"PlatformAllowList": [
 				"Win64"
 			]

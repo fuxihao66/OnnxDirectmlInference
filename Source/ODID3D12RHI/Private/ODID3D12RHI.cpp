@@ -236,7 +236,7 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const
 	unsigned int opsetVersion;
 
 	{
-		ONNX_PARSER::OnnxParser* parser = new ONNX_PARSER::OnnxParser(path_to_onnx);
+		ONNX_PARSER::OnnxParser* parser = new ONNX_PARSER::OnnxParser(path_to_onnx.c_str());
 		graphInitializers = parser->GetGraphInitializers(); // error
 		outputMap = parser->GetOutputs();
 		inputMap = parser->GetInputs();
@@ -246,6 +246,16 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const
 		opsetVersion = parser->GetOpsetVersion();
 		delete(parser);
 	}
+	//{
+	//	ONNX_PARSER::OnnxParser parser(path_to_onnx.c_str());
+	//	graphInitializers = parser.GetGraphInitializers(); // error
+	//	outputMap = parser.GetOutputs();
+	//	inputMap = parser.GetInputs();
+	//	weightsBinding = parser.GetBindings();
+	//	dmlWeights = parser.GetWeights();
+	//	graphNodes = parser.GetGraphNodes();
+	//	opsetVersion = parser.GetOpsetVersion();
+	//}
 
 	unsigned int modelInputNum = inputMap.size();
 	unsigned int modelOutputNum = outputMap.size();

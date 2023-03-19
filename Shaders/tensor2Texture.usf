@@ -1,0 +1,62 @@
+#include "/Engine/Public/Platform.ush"
+// #include "TAACommon.ush"
+// SCREEN_PASS_TEXTURE_VIEWPORT(InputInfo)
+
+// #include "Common.ush"
+#define TILE_SIZE  32
+Buffer<half>   gInputTensor;
+
+RWTexture2D<float4> gOutputTexture;
+uint TextureWidth;
+uint TextureHeight;
+uint BufferWidth;
+uint BufferHeight;
+
+// uint Width;
+
+float BilinearInterp(float x, uint x_left, uint x_right, float y, uint y_left, uint y_right, uint indicator)
+{
+	float v00 = gInputTensor[BufferWidth * y_left + x_left + indicator * BufferHeight * BufferWidth];
+	float v01 = gInputTensor[BufferWidth * y_right + x_left + indicator * BufferHeight * BufferWidth];
+	float v10 = gInputTensor[BufferWidth * y_left + x_right + indicator * BufferHeight * BufferWidth];
+	float v11 = gInputTensor[BufferWidth * y_right + x_right + indicator * BufferHeight * BufferWidth];
+	return v00 * (x_right - x) * (y_right - y) + v01 * (x_right - x) * (y - y_left) + v10 * (x - x_left) * (y_right - y) + v11 * (x - x_left) * (y - y_left);
+}
+
+[numthreads(TILE_SIZE, TILE_SIZE, 1)]
+void tensorToImage(
+    uint2 DispatchThreadId : SV_DispatchThreadID,
+    uint2 GroupId : SV_GroupID,
+	uint GroupThreadIndex : SV_GroupIndex)
+{
+    
+    uint x = DispatchThreadId.x;
+    uint y = DispatchThreadId.y;
+
+    // uint Width = InputInfo_ViewportMax.x;
+    // uint Height = InputInfo_ViewportMax.y;
+    // uint index = Width * y + x;
+
+	if (any(DispatchThreadId >= uint2(TextureWidth, TextureHeight)))
+		return;
+
+    float x_buffer = (x + 0.5) * float(BufferWidth) / float(TextureWidth) - 0.5;
+	float y_buffer = (y + 0.5) * float(BufferHeight) / float(TextureHeight) - 0.5;
+ 	
+	uint lower_x = x_buffer;
+	uint upper_x = lower_x + 1;
+	uint lower_y = y_buffer;
+	uint upper_y = lower_y + 1;
+	
+	float result_x = BilinearInterp(x_buffer, lower_x, upper_x, y_buffer, lower_y, upper_y, 0);
+	float result_y = BilinearInterp(x_buffer, lower_x, upper_x, y_buffer, lower_y, upper_y, 1);
+	float result_z = BilinearInterp(x_buffer, lower_x, upper_x, y_buffer, lower_y, upper_y, 2);
+	float3 result = float3(result_x / 255.f, result_y / 255.f, result_z / 255.f);
+
+
+	gOutputTexture[uint2(x, y)] = float4(result, 1.0);
+    // outputImage[uint2(x, y)] = float4(0.0, 1.0, 0.0, 0.0);
+    // outputImage[uint2(x, y)] = float4(inputBuffer[index*3 ], inputBuffer[index*3 + 1], inputBuffer[index*3 + 2], 1.0);
+    // outputImage[uint2(x, y)] = float4(1.0, inputBuffer[index*3 + 1], inputBuffer[index*3 + 2], 1.0);
+
+}

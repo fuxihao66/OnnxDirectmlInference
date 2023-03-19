@@ -175,7 +175,7 @@ namespace ONNX_PARSER {
 		//void ParseGraphNodes(std::map<std::string, Op>&); // TODO: only support single output node
 		void ParseGraphInitializers();
 	public:
-		OnnxParser(const std::wstring& path_to_onnx);
+		OnnxParser(const wchar_t* path_to_onnx);
 		~OnnxParser();
 		//OnnxParser(google::protobuf::io::FileInputStream* fileStream);
 		int64_t GetIrVersion() const;

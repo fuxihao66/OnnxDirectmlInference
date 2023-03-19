@@ -1,0 +1,45 @@
+#include "/Engine/Public/Platform.ush"
+// #include "TAACommon.ush"
+
+// SCREEN_PASS_TEXTURE_VIEWPORT(InputInfo)
+
+#define TILE_SIZE  32
+
+Texture2D<float4> gInputTexture;
+RWStructuredBuffer<half>   gOutputTensor;
+uint TextureWidth;
+uint TextureHeight;
+uint BufferWidth;
+uint BufferHeight;
+SamplerState gSampler;
+
+[numthreads(TILE_SIZE, TILE_SIZE, 1)]
+void imageToTensor(
+    uint2 DispatchThreadId : SV_DispatchThreadID,
+    uint2 GroupId : SV_GroupID,
+	uint GroupThreadIndex : SV_GroupIndex)
+{
+    uint x = DispatchThreadId.x;
+    uint y = DispatchThreadId.y;
+
+    // uint Width = InputInfo_ViewportMax.x;
+    // uint Height = InputInfo_ViewportMax.y;
+    uint index = BufferWidth * y + x;
+
+	if (any(DispatchThreadId >= uint2(BufferWidth, BufferHeight)))
+		return;
+
+    float2 uv = (DispatchThreadId + (0.5f).xx) / float2(BufferWidth, BufferHeight);
+
+    float4 linearInterpolatedVal = gInputTexture.SampleLevel(gSampler, uv, 0);
+
+    uint planeSize = BufferWidth * BufferHeight;
+
+    uint3 Val8Bit = uint3(linearInterpolatedVal.x * 255, linearInterpolatedVal.y * 255, linearInterpolatedVal.z * 255);
+
+    Val8Bit = clamp(Val8Bit, 0.xxx, 255.xxx);
+
+    gOutputTensor[index] = half(Val8Bit.x);
+    gOutputTensor[index + planeSize] = half(Val8Bit.y);
+    gOutputTensor[index + planeSize * 2] = half(Val8Bit.z);
+}

@@ -53,11 +53,15 @@ bool Network::CreateModelAndUploadData(FRDGBuilder& GraphBuilder){
 
 	FBlankParameters* PassParameters = GraphBuilder.AllocParameters<FBlankParameters>();
 
+    ODIRHI* LocalODIRHIExtensions = m_ODIRHIExtensions;
+    std::wstring onnx_file_path = m_onnx_file_path;
+    std::string model_name = m_model_name;
     GraphBuilder.AddPass(
         RDG_EVENT_NAME("Create Model"),
         PassParameters,
-        ERDGPassFlags::Compute | ERDGPassFlags::Raster | ERDGPassFlags::SkipRenderPass,
-        [LocalODIRHIExtensions = m_ODIRHIExtensions, model_name = m_model_name, onnx_file_path = m_onnx_file_path](FRHICommandListImmediate& RHICmdList)
+        ERDGPassFlags::Compute | ERDGPassFlags::Raster | ERDGPassFlags::SkipRenderPass | ERDGPassFlags::NeverCull,
+        [LocalODIRHIExtensions, model_name, onnx_file_path](FRHICommandListImmediate& RHICmdList)
+        //[LocalODIRHIExtensions = m_ODIRHIExtensions, model_name = m_model_name, onnx_file_path = m_onnx_file_path](FRHICommandListImmediate& RHICmdList)
     {
 
         RHICmdList.EnqueueLambda(
