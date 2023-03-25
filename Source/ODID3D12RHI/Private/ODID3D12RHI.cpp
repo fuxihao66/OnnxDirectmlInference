@@ -423,7 +423,7 @@ ODI_Result FODID3D12RHI::ParseAndUploadModelData(FRHICommandList& CmdList, const
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(currOnnxInfo.modelOperatorWeights.ReleaseAndGetAddressOf()));
-
+		currOnnxInfo.modelOperatorWeights->SetName(L"NetworkWights");
 
 		D3D12_SUBRESOURCE_DATA weightsData = {};
 		weightsData.pData = dmlWeights.data();

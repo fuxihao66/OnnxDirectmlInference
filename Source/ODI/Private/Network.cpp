@@ -74,10 +74,10 @@ bool Network::CreateModelAndUploadData(FRDGBuilder& GraphBuilder){
             // TODO: synchronize
 
         });
-        //FRHICommandListExecutor::GetImmediateCommandList().BlockUntilGPUIdle(); 
+        FRHICommandListExecutor::GetImmediateCommandList().BlockUntilGPUIdle(); 
     });
 
-    FRHICommandListExecutor::GetImmediateCommandList().BlockUntilGPUIdle();
+    //FRHICommandListExecutor::GetImmediateCommandList().BlockUntilGPUIdle();
 
     dataHasUploaded = true;
 
