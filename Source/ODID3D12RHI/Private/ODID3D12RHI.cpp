@@ -698,8 +698,11 @@ void FODID3D12RHIModule::StartupModule()
 {
 	FString BaseDir = IPluginManager::Get().FindPlugin("ODI")->GetBaseDir();
 	FString DmlBinariesRoot = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/DirectML_1_9_1/bin/Win64/"));
+#if _Debug
+	DirectMLLibraryHandle = FPlatformProcess::GetDllHandle(*(DmlBinariesRoot + "DirectML.Debug.dll"));
+#else
 	DirectMLLibraryHandle = FPlatformProcess::GetDllHandle(*(DmlBinariesRoot + "DirectML.dll"));
-
+#endif
 	FString OnnxParserBinariesRoot = FPaths::Combine(*BaseDir, TEXT("Source/ODID3D12RHI/OnnxParser/"));
 	OnnxParserLibraryHandle = FPlatformProcess::GetDllHandle(*(OnnxParserBinariesRoot + "OnnxParser.dll"));
 

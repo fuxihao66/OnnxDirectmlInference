@@ -26,7 +26,7 @@ public:
 	SHADER_USE_PARAMETER_STRUCT(FTensor2TextureCS, FGlobalShader);
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<half>, gInputTensor)
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float3>, gInputTensor)
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<float4>, gOutputTexture)
 		SHADER_PARAMETER(uint32, TextureWidth)
 		SHADER_PARAMETER(uint32, TextureHeight)
@@ -53,7 +53,7 @@ public:
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float4>, gInputTexture)
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<half>, gOutputTensor)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float3>, gOutputTensor)
 		SHADER_PARAMETER(uint32, TextureWidth)
 		SHADER_PARAMETER(uint32, TextureHeight)
 		SHADER_PARAMETER(uint32, BufferWidth)
@@ -76,7 +76,7 @@ FRDGBufferRef DispatchTexture2Tensor(FRDGBuilder& GraphBuilder,// const FViewInf
 	FRDGBufferRef OutputTensor;
 	{
 
-		FRDGBufferDesc BufferDesc = FRDGBufferDesc::CreateBufferDesc(sizeof(uint16_t), BufferWidth * BufferWidth * 3); // half
+		FRDGBufferDesc BufferDesc = FRDGBufferDesc::CreateBufferDesc(2, BufferWidth * BufferWidth * 3); // half
 		OutputTensor = GraphBuilder.CreateBuffer(BufferDesc, TEXT("OutputTensor"));
 	}
 	{// pass one

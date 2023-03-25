@@ -200,24 +200,25 @@ public:
         }
 
     }
-    dml::Expression Create(){
-        dml::detail::GraphBuilder* builder = m_input.Impl()->GetGraphBuilder();
-        
+    dml::Expression Create(){ // TODO: Previous Implementation somehow fails, but I dont know why (compiler flag) 
+        /*dml::detail::GraphBuilder* builder = m_input.Impl()->GetGraphBuilder();
+
         dml::detail::NodeID node;
-        if (m_slope){
+        if (m_slope) {
             dml::detail::NodeOutput* const inputs[] = { m_input.Impl(), m_slope->Impl() };
             node = builder->CreateOperatorNode(operatorType, &operatorDesc, inputs);
         }
-        else{
+        else {
             dml::detail::NodeOutput* const inputs[] = { m_input.Impl() };
             node = builder->CreateOperatorNode(operatorType, &operatorDesc, inputs);
         }
-         
+
         dml::TensorDesc inputTensor = m_input.Impl()->GetOutputDesc();
         dml::TensorDesc outputTensor(inputTensor.dataType, inputTensor.sizes, builder->GetTensorPolicy());
         dml::detail::NodeOutput* output = builder->CreateNodeOutput(node, 0, std::move(outputTensor));
-       
-        return output;
+
+        return output;*/
+        return dml::ActivationRelu(m_input);
     }
 private:
     dml::Expression m_input;

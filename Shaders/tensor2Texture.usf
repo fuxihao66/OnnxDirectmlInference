@@ -55,7 +55,7 @@ void tensorToImage(
 
 
 	gOutputTexture[uint2(x, y)] = float4(result, 1.0);
-    // outputImage[uint2(x, y)] = float4(0.0, 1.0, 0.0, 0.0);
+    // gOutputTexture[uint2(x, y)] = float4(0.0, 1.0, 0.0, 0.0);
     // outputImage[uint2(x, y)] = float4(inputBuffer[index*3 ], inputBuffer[index*3 + 1], inputBuffer[index*3 + 2], 1.0);
     // outputImage[uint2(x, y)] = float4(1.0, inputBuffer[index*3 + 1], inputBuffer[index*3 + 2], 1.0);
 

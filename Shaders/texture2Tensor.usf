@@ -6,7 +6,7 @@
 #define TILE_SIZE  32
 
 Texture2D<float4> gInputTexture;
-RWStructuredBuffer<half>   gOutputTensor;
+RWBuffer<half>   gOutputTensor;
 uint TextureWidth;
 uint TextureHeight;
 uint BufferWidth;
@@ -36,10 +36,15 @@ void imageToTensor(
     uint planeSize = BufferWidth * BufferHeight;
 
     uint3 Val8Bit = uint3(linearInterpolatedVal.x * 255, linearInterpolatedVal.y * 255, linearInterpolatedVal.z * 255);
+    // uint3 Val8Bit = uint3(linearInterpolatedVal.x, linearInterpolatedVal.y, linearInterpolatedVal.z);
 
     Val8Bit = clamp(Val8Bit, 0.xxx, 255.xxx);
 
     gOutputTensor[index] = half(Val8Bit.x);
     gOutputTensor[index + planeSize] = half(Val8Bit.y);
     gOutputTensor[index + planeSize * 2] = half(Val8Bit.z);
+
+    // gOutputTensor[index] = half(255.f);
+    // gOutputTensor[index + planeSize] = half(0.f);
+    // gOutputTensor[index + planeSize * 2] = half(0.f);
 }
