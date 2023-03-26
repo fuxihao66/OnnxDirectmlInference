@@ -703,8 +703,8 @@ void FODID3D12RHIModule::StartupModule()
 #else
 	DirectMLLibraryHandle = FPlatformProcess::GetDllHandle(*(DmlBinariesRoot + "DirectML.dll"));
 #endif
-	FString OnnxParserBinariesRoot = FPaths::Combine(*BaseDir, TEXT("Source/ODID3D12RHI/OnnxParser/"));
-	OnnxParserLibraryHandle = FPlatformProcess::GetDllHandle(*(OnnxParserBinariesRoot + "OnnxParser.dll"));
+	/*FString OnnxParserBinariesRoot = FPaths::Combine(*BaseDir, TEXT("Source/ODID3D12RHI/OnnxParser/"));
+	OnnxParserLibraryHandle = FPlatformProcess::GetDllHandle(*(OnnxParserBinariesRoot + "OnnxParser.dll"));*/
 
 
 	// ODIRHI module should be loaded to ensure logging state is initialized
@@ -716,8 +716,8 @@ void FODID3D12RHIModule::ShutdownModule()
 	FPlatformProcess::FreeDllHandle(DirectMLLibraryHandle);
 	DirectMLLibraryHandle = nullptr;
 
-	FPlatformProcess::FreeDllHandle(OnnxParserLibraryHandle);
-	OnnxParserLibraryHandle = nullptr;
+	/*FPlatformProcess::FreeDllHandle(OnnxParserLibraryHandle);
+	OnnxParserLibraryHandle = nullptr;*/
 }
 
 TUniquePtr<ODIRHI> FODID3D12RHIModule::CreateODIRHI(const FODIRHICreateArguments& Arguments)
