@@ -1,6 +1,6 @@
-D:\ODI_Test\Plugins\ODI\Source\ODIRHI\Private\ODIRHI.cpp
+D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Source\ODIRHI\Private\ODIRHI.cpp
 /I .
-/I D:\ODI_Test\Plugins\ODI\Source\ODIRHI\Private
+/I D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Source\ODIRHI\Private
 /I Runtime\TraceLog\Public
 /I Runtime\Core\Public
 /I Runtime
@@ -274,8 +274,8 @@ D:\ODI_Test\Plugins\ODI\Source\ODIRHI\Private\ODIRHI.cpp
 /I ..\Intermediate\Build\Win64\UnrealEditor\Inc\AnimationDataController\UHT
 /I Developer\AnimationDataController\Public
 /I Runtime\RHICore\Public
-/I D:\ODI_Test\Plugins\ODI\Source
-/I D:\ODI_Test\Plugins\ODI\Source\ODIRHI\Public
+/I D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Source
+/I D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Source\ODIRHI\Public
 /I ThirdParty\mimalloc\include
 /I ThirdParty\LibTiff\Source\Win64
 /I ThirdParty\LibTiff\Source
@@ -285,11 +285,11 @@ D:\ODI_Test\Plugins\ODI\Source\ODIRHI\Private\ODIRHI.cpp
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.20348.0\um"
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.20348.0\winrt"
 /FI"..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Engine\SharedPCH.Engine.ShadowErrors.InclOrderUnreal5_0.h"
-/FI"D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\Definitions.ODIRHI.h"
+/FI"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\Definitions.ODIRHI.h"
 /Yu"..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Engine\SharedPCH.Engine.ShadowErrors.InclOrderUnreal5_0.h"
 /Fp"..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Engine\SharedPCH.Engine.ShadowErrors.InclOrderUnreal5_0.h.pch"
-/Fo"D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\ODIRHI.cpp.obj"
-/sourceDependencies D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\ODIRHI.cpp.dep.json
+/Fo"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\ODIRHI.cpp.obj"
+/sourceDependencies D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\ODIRHI.cpp.dep.json
 /Zc:inline
 /nologo
 /Oi

@@ -1,0 +1,15 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UnrealEditor-OnnxParser.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Engine\SharedPCH.Engine.ShadowErrors.InclOrderUnreal5_0.h.obj"
+"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\OnnxParser\Module.cpp.obj"
+"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\OnnxParser\OnnxParser.cpp.obj"
+"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\OnnxParser\node_attr_helper.cc.obj"
+"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\OnnxParser\onnx.proto3.pb.cc.obj"
+"..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Default.rc2.res"
+/OUT:"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\OnnxParser\UnrealEditor-OnnxParser.lib"

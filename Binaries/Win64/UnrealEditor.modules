@@ -1,9 +1,11 @@
 {
-	"BuildId": "32e7cf44-5a46-4d91-a327-2fecdc166b6e",
+	"BuildId": "3b8fe160-3d3b-4b98-bd4d-80452d119e9c",
 	"Modules": 
 	{
 		"ODI": "UnrealEditor-ODI.dll",
 		"ODID3D12RHI": "UnrealEditor-ODID3D12RHI.dll",
-		"ODIRHI": "UnrealEditor-ODIRHI.dll"
+		"ODIRHI": "UnrealEditor-ODIRHI.dll",
+		"OnnxParser": "UnrealEditor-OnnxParser.dll",
+		"TextureBufferCopy": "UnrealEditor-TextureBufferCopy.dll"
 	}
 }

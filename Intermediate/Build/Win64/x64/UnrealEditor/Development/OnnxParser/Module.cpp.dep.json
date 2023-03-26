@@ -1,0 +1,17 @@
+{
+    "Version": "1.1",
+    "Data": {
+        "Source": "d:\\ugit\\odi-testproject\\plugins\\onnxdirectmlinference\\source\\onnxparser\\private\\module.cpp",
+        "ProvidedModule": "",
+        "PCH": "d:\\ugit\\unrealengine\\engine\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\engine\\sharedpch.engine.shadowerrors.inclorderunreal5_0.h.pch",
+        "Includes": [
+            "d:\\ugit\\odi-testproject\\plugins\\onnxdirectmlinference\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\onnxparser\\definitions.onnxparser.h",
+            "d:\\ugit\\odi-testproject\\plugins\\onnxdirectmlinference\\source\\onnxparser\\private\\module.h",
+            "d:\\ugit\\unrealengine\\engine\\source\\editor\\unrealed\\public\\utils.h",
+            "d:\\ugit\\unrealengine\\engine\\source\\editor\\unrealed\\classes\\factories\\factory.h",
+            "d:\\ugit\\unrealengine\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\unrealed\\uht\\factory.generated.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

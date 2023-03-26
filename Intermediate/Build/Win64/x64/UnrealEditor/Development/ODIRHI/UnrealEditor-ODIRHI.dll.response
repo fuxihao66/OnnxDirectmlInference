@@ -34,7 +34,7 @@
 /NODEFAULTLIB:"LIBCPD"
 /FUNCTIONPADMIN:6
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Engine\SharedPCH.Engine.ShadowErrors.InclOrderUnreal5_0.h.obj"
-"D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\ODIRHI.cpp.obj"
+"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\ODIRHI.cpp.obj"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Default.rc2.res"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Core\UnrealEditor-Core.lib"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Engine\UnrealEditor-Engine.lib"
@@ -65,7 +65,7 @@
 "setupapi.lib"
 "dwmapi.lib"
 "imm32.lib"
-/OUT:"D:\ODI_Test\Plugins\ODI\Binaries\Win64\UnrealEditor-ODIRHI.dll"
-/IMPLIB:"D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\UnrealEditor-ODIRHI.suppressed.lib"
-/PDB:"D:\ODI_Test\Plugins\ODI\Binaries\Win64\UnrealEditor-ODIRHI.pdb"
+/OUT:"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Binaries\Win64\UnrealEditor-ODIRHI.dll"
+/IMPLIB:"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\UnrealEditor-ODIRHI.suppressed.lib"
+/PDB:"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Binaries\Win64\UnrealEditor-ODIRHI.pdb"
 /ignore:4078

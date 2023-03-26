@@ -1,12 +1,12 @@
 {
     "Version": "1.1",
     "Data": {
-        "Source": "d:\\odi_test\\plugins\\odi\\source\\odirhi\\private\\odirhi.cpp",
+        "Source": "d:\\ugit\\odi-testproject\\plugins\\onnxdirectmlinference\\source\\odirhi\\private\\odirhi.cpp",
         "ProvidedModule": "",
         "PCH": "d:\\ugit\\unrealengine\\engine\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\engine\\sharedpch.engine.shadowerrors.inclorderunreal5_0.h.pch",
         "Includes": [
-            "d:\\odi_test\\plugins\\odi\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\odirhi\\definitions.odirhi.h",
-            "d:\\odi_test\\plugins\\odi\\source\\odirhi\\public\\odirhi.h",
+            "d:\\ugit\\odi-testproject\\plugins\\onnxdirectmlinference\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\odirhi\\definitions.odirhi.h",
+            "d:\\ugit\\odi-testproject\\plugins\\onnxdirectmlinference\\source\\odirhi\\public\\odirhi.h",
             "c:\\program files (x86)\\microsoft visual studio\\2019\\community\\vc\\tools\\msvc\\14.29.30133\\include\\map",
             "c:\\program files (x86)\\microsoft visual studio\\2019\\community\\vc\\tools\\msvc\\14.29.30133\\include\\xtree"
         ],

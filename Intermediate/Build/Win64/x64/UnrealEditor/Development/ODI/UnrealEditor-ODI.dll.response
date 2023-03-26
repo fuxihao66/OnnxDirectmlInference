@@ -34,7 +34,7 @@
 /NODEFAULTLIB:"LIBCPD"
 /FUNCTIONPADMIN:6
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Engine\SharedPCH.Engine.ShadowErrors.InclOrderUnreal5_0.h.obj"
-"D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODI\Module.ODI.cpp.obj"
+"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODI\Module.ODI.cpp.obj"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Default.rc2.res"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Core\UnrealEditor-Core.lib"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\CoreUObject\UnrealEditor-CoreUObject.lib"
@@ -43,7 +43,7 @@
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\RenderCore\UnrealEditor-RenderCore.lib"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Renderer\UnrealEditor-Renderer.lib"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\RHI\UnrealEditor-RHI.lib"
-"D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\UnrealEditor-ODIRHI.lib"
+"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODIRHI\UnrealEditor-ODIRHI.lib"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Projects\UnrealEditor-Projects.lib"
 "delayimp.lib"
 "wininet.lib"
@@ -69,7 +69,7 @@
 "setupapi.lib"
 "dwmapi.lib"
 "imm32.lib"
-/OUT:"D:\ODI_Test\Plugins\ODI\Binaries\Win64\UnrealEditor-ODI.dll"
-/IMPLIB:"D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODI\UnrealEditor-ODI.suppressed.lib"
-/PDB:"D:\ODI_Test\Plugins\ODI\Binaries\Win64\UnrealEditor-ODI.pdb"
+/OUT:"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Binaries\Win64\UnrealEditor-ODI.dll"
+/IMPLIB:"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODI\UnrealEditor-ODI.suppressed.lib"
+/PDB:"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Binaries\Win64\UnrealEditor-ODI.pdb"
 /ignore:4078

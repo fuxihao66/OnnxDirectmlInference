@@ -1,0 +1,9 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.TextureBufferCopy.cpp.obj": [
+			"Module.cpp.obj",
+			"TensorTextureTranslate.cpp.obj"
+		]
+	}
+}

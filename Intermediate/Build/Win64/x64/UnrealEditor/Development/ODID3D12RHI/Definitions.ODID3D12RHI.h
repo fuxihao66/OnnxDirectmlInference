@@ -69,8 +69,8 @@
 #define UE_DISABLE_INLINE_GEN_CPP 0
 #define UE_ENABLE_INCLUDE_ORDER_DEPRECATED_IN_5_1 1
 #define UE_ENABLE_INCLUDE_ORDER_DEPRECATED_IN_5_2 1
-#define UE_PROJECT_NAME ODI_Test
-#define UE_TARGET_NAME ODI_TestEditor
+#define UE_PROJECT_NAME FPStyleTransfer
+#define UE_TARGET_NAME FPStyleTransferEditor
 #define NV_AFTERMATH 0
 #define INTEL_EXTENSIONS 0
 #define UE_MODULE_NAME "ODID3D12RHI"
@@ -407,6 +407,8 @@
 #define DML_TARGET_VERSION 0x5100
 #define DIRECTML_USE_DLLS 1
 #define WITH_DIRECTML 1
-#define DIRECTML_BIN_PATH D:/ODI_Test/Plugins/ODI/Source/ThirdParty/DirectML_1_9_1/bin/Win64
+#define DIRECTML_BIN_PATH D:/UGit/ODI-TestProject/Plugins/OnnxDirectmlInference/Source/ThirdParty/DirectML_1_9_1/bin/Win64
 #define DIRECTML_PLATFORM_PATH bin/Win64
 #define DIRECTML_DLL_NAME DirectML.dll
+#define GOOGLE_PROTOBUF_INTERNAL_DONATE_STEAL_INLINE 0
+#define ONNXPARSER_API DLLIMPORT

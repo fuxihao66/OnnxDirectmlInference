@@ -7,6 +7,6 @@
 /IGNORE:4221
 /NODEFAULTLIB
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Engine\SharedPCH.Engine.ShadowErrors.InclOrderUnreal5_0.h.obj"
-"D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODI\Module.ODI.cpp.obj"
+"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODI\Module.ODI.cpp.obj"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Default.rc2.res"
-/OUT:"D:\ODI_Test\Plugins\ODI\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODI\UnrealEditor-ODI.lib"
+/OUT:"D:\UGit\ODI-TestProject\Plugins\OnnxDirectmlInference\Intermediate\Build\Win64\x64\UnrealEditor\Development\ODI\UnrealEditor-ODI.lib"
