@@ -5,34 +5,6 @@
 namespace ODI
 {
 
-union ActivationOperatorDescUnion
-{
-    DML_ACTIVATION_IDENTITY_OPERATOR_DESC identity;
-    DML_ACTIVATION_ELU_OPERATOR_DESC elu;
-    DML_ACTIVATION_CELU_OPERATOR_DESC celu;
-    DML_ACTIVATION_HARDMAX_OPERATOR_DESC hardmax;
-    DML_ACTIVATION_HARDMAX1_OPERATOR_DESC hardmax1;
-    DML_ACTIVATION_HARD_SIGMOID_OPERATOR_DESC hardSigmoid;
-    DML_ACTIVATION_LEAKY_RELU_OPERATOR_DESC leakyRelu;
-    DML_ACTIVATION_LINEAR_OPERATOR_DESC linear;
-    DML_ACTIVATION_LOG_SOFTMAX_OPERATOR_DESC logSoftmax;
-    DML_ACTIVATION_LOG_SOFTMAX1_OPERATOR_DESC logSoftmax1;
-    DML_ACTIVATION_PARAMETERIZED_RELU_OPERATOR_DESC parameterizedRelu;
-    DML_ACTIVATION_PARAMETRIC_SOFTPLUS_OPERATOR_DESC parametricSoftplus;
-    DML_ACTIVATION_RELU_OPERATOR_DESC relu;
-    DML_ACTIVATION_SCALED_TANH_OPERATOR_DESC scaledTanh;
-    DML_ACTIVATION_SCALED_ELU_OPERATOR_DESC scaledElu;
-    DML_ACTIVATION_SIGMOID_OPERATOR_DESC sigmoid;
-    DML_ACTIVATION_SOFTMAX_OPERATOR_DESC softmax;
-    DML_ACTIVATION_SOFTMAX1_OPERATOR_DESC softmax1;
-    DML_ACTIVATION_SOFTPLUS_OPERATOR_DESC softplus;
-    DML_ACTIVATION_SOFTSIGN_OPERATOR_DESC softsign;
-    DML_ACTIVATION_TANH_OPERATOR_DESC tanh;
-    DML_ACTIVATION_THRESHOLDED_RELU_OPERATOR_DESC thresholdedRelu;
-    DML_ACTIVATION_SHRINK_OPERATOR_DESC shrink;
-    DML_ACTIVATION_GELU_OPERATOR_DESC gelu;
-};
-
 template<DML_OPERATOR_TYPE operatorType>
 class DmlOperatorActivation
 {
@@ -50,9 +22,9 @@ public:
         {
             ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("alpha", ONNX_PARSER::AttributeType::FLOAT);
             if (attriWrapper.isValid())
-                memcpy(&operatorDesc.elu.Alpha, attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                memcpy(&Param0, attriWrapper.getValue().data(), attriWrapper.getValue().size());
             else
-                operatorDesc.elu.Alpha = 1.0f;
+                Param0 = 1.0f;
             break;
         }
         // case DML_OPERATOR_ACTIVATION_SOFTMAX:
@@ -65,23 +37,23 @@ public:
         {
             ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("alpha", ONNX_PARSER::AttributeType::FLOAT);
             if (attriWrapper.isValid())
-                memcpy(&operatorDesc.hardSigmoid.Alpha, attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                memcpy(&Param0, attriWrapper.getValue().data(), attriWrapper.getValue().size());
             else
-                operatorDesc.hardSigmoid.Alpha = 0.2f;
+                Param0 = 0.2f;
             attriWrapper = node.GetAttribute("beta", ONNX_PARSER::AttributeType::FLOAT);
             if (attriWrapper.isValid())
-                memcpy(&operatorDesc.hardSigmoid.Beta, attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                memcpy(&Param1, attriWrapper.getValue().data(), attriWrapper.getValue().size());
             else   
-                operatorDesc.hardSigmoid.Beta = 0.5f;
+                Param1 = 0.5f;
             break;
         }
         case DML_OPERATOR_ACTIVATION_LEAKY_RELU:
         {
             ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("alpha", ONNX_PARSER::AttributeType::FLOAT);
             if (attriWrapper.isValid())
-                memcpy(&operatorDesc.leakyRelu.Alpha, attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                memcpy(&Param0, attriWrapper.getValue().data(), attriWrapper.getValue().size());
             else
-                operatorDesc.leakyRelu.Alpha = 0.01f;
+                Param0 = 0.01f;
             break;
         }
         // case DML_OPERATOR_ACTIVATION_LINEAR: // TODO: NOT USED
@@ -104,14 +76,14 @@ public:
         {
             ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("alpha", ONNX_PARSER::AttributeType::FLOAT);
             if (attriWrapper.isValid())
-                memcpy(&operatorDesc.scaledElu.Alpha, attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                memcpy(&Param0, attriWrapper.getValue().data(), attriWrapper.getValue().size());
             else
-                operatorDesc.scaledElu.Alpha = 1.67326f;
+                Param0 = 1.67326f;
             attriWrapper = node.GetAttribute("gamma", ONNX_PARSER::AttributeType::FLOAT);
             if (attriWrapper.isValid())
-                memcpy(&operatorDesc.scaledElu.Gamma, attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                memcpy(&Param1, attriWrapper.getValue().data(), attriWrapper.getValue().size());
             else   
-                operatorDesc.scaledElu.Gamma = 1.0507f;
+                Param1 = 1.0507f;
             break;
         }
 
@@ -122,30 +94,30 @@ public:
 
         case DML_OPERATOR_ACTIVATION_SOFTPLUS:
         {
-            operatorDesc.softplus.Steepness = 1.0f;
+            Param0 = 1.0f;
             break;
         }
         case DML_OPERATOR_ACTIVATION_THRESHOLDED_RELU:
         {    
             ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("alpha", ONNX_PARSER::AttributeType::FLOAT);
             if (attriWrapper.isValid())
-                memcpy(&operatorDesc.thresholdedRelu.Alpha, attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                memcpy(&Param0, attriWrapper.getValue().data(), attriWrapper.getValue().size());
             else
-                operatorDesc.thresholdedRelu.Alpha = 1.f;
+                Param0 = 1.f;
             break;
         }
         case DML_OPERATOR_ACTIVATION_SHRINK:
         {
             ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("bias", ONNX_PARSER::AttributeType::FLOAT);
             if (attriWrapper.isValid())
-                memcpy(&operatorDesc.shrink.Bias, attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                memcpy(&Param0, attriWrapper.getValue().data(), attriWrapper.getValue().size());
             else
-                operatorDesc.shrink.Bias = 0.f;
+                Param0 = 0.f;
             attriWrapper = node.GetAttribute("lambd", ONNX_PARSER::AttributeType::FLOAT);
             if (attriWrapper.isValid())
-                memcpy(&operatorDesc.shrink.Threshold, attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                memcpy(&Param1, attriWrapper.getValue().data(), attriWrapper.getValue().size());
             else   
-                operatorDesc.shrink.Threshold = 0.5f;
+                Param1 = 0.5f;
             break;
         }
         case DML_OPERATOR_ACTIVATION_IDENTITY:
@@ -183,19 +155,9 @@ public:
             *m_slope = expressionMap[node.inputNames[1]];
 
             CheckReference(initializerMap, node.inputNames[1]);
-
-            dml::TensorDesc slopeTensor = m_slope->Impl()->GetOutputDesc();
-
-            operatorDesc.parameterizedRelu.InputTensor = inputTensor.AsPtr<DML_TENSOR_DESC>();
-            operatorDesc.parameterizedRelu.SlopeTensor = slopeTensor.AsPtr<DML_TENSOR_DESC>();
-            operatorDesc.parameterizedRelu.OutputTensor = outputTensor.AsPtr<DML_TENSOR_DESC>();
-            
         }
         else // All other activation descrptions are equivalent to Elu in layout.
         {
-            operatorDesc.elu.InputTensor = inputTensor.AsPtr<DML_TENSOR_DESC>();
-            operatorDesc.elu.OutputTensor = outputTensor.AsPtr<DML_TENSOR_DESC>();
-
             m_slope = std::nullopt;
         }
 
@@ -218,12 +180,48 @@ public:
         dml::detail::NodeOutput* output = builder->CreateNodeOutput(node, 0, std::move(outputTensor));
 
         return output;*/
-        return dml::ActivationRelu(m_input);
+
+        switch (operatorType) {
+        case DML_OPERATOR_ACTIVATION_ELU:
+            return dml::ActivationElu(m_input, Param0);
+        case DML_OPERATOR_ACTIVATION_CELU:
+            return dml::ActivationCelu(m_input, Param0);
+        case DML_OPERATOR_ACTIVATION_HARD_SIGMOID:
+            return dml::ActivationHardSigmoid(m_input, Param0, Param1);
+        case DML_OPERATOR_ACTIVATION_LEAKY_RELU:
+            return dml::ActivationLeakyRelu(m_input, Param0);
+        case DML_OPERATOR_ACTIVATION_SCALED_ELU:
+            return dml::ActivationScaledElu(m_input, Param0);
+        case DML_OPERATOR_ACTIVATION_SOFTPLUS:
+            return dml::ActivationSoftplus(m_input, Param0);
+        case DML_OPERATOR_ACTIVATION_THRESHOLDED_RELU:
+            return dml::ActivationThresholdedRelu(m_input, Param0);
+        case DML_OPERATOR_ACTIVATION_SHRINK:
+            return dml::ActivationShrink(m_input, Param0, Param1);
+        case DML_OPERATOR_ACTIVATION_IDENTITY:
+            return dml::ActivationIdentity(m_input);
+        case DML_OPERATOR_ACTIVATION_PARAMETERIZED_RELU:
+            return dml::ActivationParameterizedRelu(m_input, *m_slope);
+        case DML_OPERATOR_ACTIVATION_RELU:
+            return dml::ActivationRelu(m_input);
+        case DML_OPERATOR_ACTIVATION_SIGMOID:
+            return dml::ActivationSigmoid(m_input);
+        case DML_OPERATOR_ACTIVATION_TANH:
+            return dml::ActivationTanh(m_input);
+        case DML_OPERATOR_ACTIVATION_SOFTSIGN:
+            return dml::ActivationSoftsign(m_input);
+        default: // Default is Relu
+            return dml::ActivationRelu(m_input);
+        }
+
+        
     }
 private:
     dml::Expression m_input;
     std::optional<dml::Expression> m_slope;
-    ActivationOperatorDescUnion operatorDesc;
+    float Param0;
+    float Param1;
+    //ActivationOperatorDescUnion operatorDesc;
     /*dml::TensorDesc inputTensor;
     dml::TensorDesc outputTensor;*/
     // DML_OPERATOR_TYPE remappedOperatorType(const DML_OPERATOR_TYPE operatorType) const {
