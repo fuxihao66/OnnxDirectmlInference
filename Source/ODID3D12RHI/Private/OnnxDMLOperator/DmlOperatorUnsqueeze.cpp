@@ -70,6 +70,72 @@ private:
     
 };
 
+class DmlOperatorReshape
+{
+public:
+    DmlOperatorReshape(std::map<std::string, dml::Expression>& expressionMap, std::map<std::string, ONNX_PARSER::InitializerTensorInfo>& initializerMap, ONNX_PARSER::Op& node, dml::Graph& graph, unsigned int opsetVersion)
+    {
+        if (node.inputNames.size() != 2)
+            throw std::exception("Reshape parameter number must be 2!");
+        auto& inputName = node.inputNames[0];
+
+        CheckReference(initializerMap, inputName);
+
+        if (expressionMap.count(inputName) == 0) {
+            throw std::exception("Dependency does not meet! Please check topological sorting!");
+        }
+        m_input = expressionMap[inputName];
+
+        dml::TensorDimensions inputShape = m_input.GetOutputDesc().sizes;
+
+        int totalElementCount = 1;
+        for (int i = 0; i < inputShape.size(); i++) {
+            totalElementCount *= inputShape[i];
+        }
+
+        std::vector<int64_t> shape;
+        {
+            //std::vector<char> temp;
+            ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("shape", ONNX_PARSER::AttributeType::TENSOR);
+            if (!attriWrapper.isValid())
+                assert(false);
+            shape.resize(attriWrapper.getValue().size() / sizeof(int64_t));
+            memcpy(shape.data(), attriWrapper.getValue().data(), attriWrapper.getValue().size());
+        }
+
+        int remainDimention = totalElementCount;
+        int notDeterminedDim = -1;
+        for (int i = 0; i < shape.size(); i++) {
+            if (shape[i] == -1) {
+                notDeterminedDim = i;
+            }
+            else {
+                remainDimention /= shape[i];
+            }
+        }
+
+        if (notDeterminedDim != -1) {
+            shape[notDeterminedDim] = remainDimention;
+        }
+
+        for (int i = 0; i < shape.size(); i++) {
+            outputSizes.push_back(shape[i]);
+        }
+    }
+
+    dml::Expression Create() {
+        // TODO: use identity to copy first?
+        return dml::Reinterpret(m_input,
+            outputSizes,
+            std::nullopt);
+    }
+private:
+    dml::TensorDimensions outputSizes;
+    // DML_TENSOR_DATA_TYPE valueDataType;
+    dml::Expression m_input;
+
+};
+DML_OP_DEFINE_CREATION_FUNCTION(Reshape, DmlOperatorReshape);
 DML_OP_DEFINE_CREATION_FUNCTION(Unsqueeze, DmlOperatorUnsqueeze);
 
 } // namespace ODI

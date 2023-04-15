@@ -4,6 +4,7 @@
 //#include "precomp.h"
 #include "OperatorRegistration.h"
 
+
 namespace ODI
 {
 
@@ -23,14 +24,22 @@ public:
 
         dml::TensorDimensions inputShape = m_input.GetOutputDesc().sizes;
 
-        std::vector<int> steps;
+        std::vector<int> steps(inputShape.size(), 1);
         std::vector<int> axes;
-        std::vector<int> ends;
-        std::vector<int> starts;
+        std::vector<int> ends(inputShape.size());
+        std::vector<int> starts(inputShape.size());
 
+        for (int i = 0; i < inputShape.size(); i++) {
+            starts[i] = 0;
+            ends[i] = inputShape[i];
+        }
+
+        std::vector<int> temp_steps;
+        std::vector<int> temp_ends;
+        std::vector<int> temp_starts;
         //std::vector<char> temp;
         if (opsetVersion < 10){
-            auto getIntsAttriAndCopy = [&](const std::string& attriName, std::vector<int>& attriVec){
+            /*auto getIntsAttriAndCopy = [&](const std::string& attriName, std::vector<int>& attriVec){
                 ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute(attriName, ONNX_PARSER::AttributeType::INTS);
                 if (attriWrapper.isValid()){
                     attriVec.resize(attriWrapper.getValue().size() / 4);
@@ -41,7 +50,17 @@ public:
                 }
             };
             getIntsAttriAndCopy("starts", starts);
-            getIntsAttriAndCopy("ends", ends);
+            getIntsAttriAndCopy("ends", ends);*/
+            {
+                ONNX_PARSER::AttributeValWrapper result = node.GetAttribute("starts", ONNX_PARSER::AttributeType::INTS);
+                temp_starts.resize(result.getValue().size() / 4);
+                memcpy(temp_starts.data(), result.getValue().data(), result.getValue().size());
+            }
+            {
+                ONNX_PARSER::AttributeValWrapper result = node.GetAttribute("ends", ONNX_PARSER::AttributeType::INTS);
+                temp_ends.resize(result.getValue().size() / 4);
+                memcpy(temp_ends.data(), result.getValue().data(), result.getValue().size());
+            }
             {
                 ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("axes", ONNX_PARSER::AttributeType::INTS);
                 if (attriWrapper.isValid()){
@@ -73,8 +92,9 @@ public:
             {
                 ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("steps", ONNX_PARSER::AttributeType::TENSOR);
                 if (attriWrapper.isValid()){
-                    steps.resize(attriWrapper.getValue().size() / 4);
-                    memcpy(steps.data(), attriWrapper.getValue().data(), attriWrapper.getValue().size());
+                    temp_steps.resize(attriWrapper.getValue().size() / 4);
+                    memcpy(temp_steps.data(), attriWrapper.getValue().data(), attriWrapper.getValue().size());
+
                 }
             }
             
@@ -83,9 +103,19 @@ public:
             axes.resize(starts.size());
             std::iota(axes.begin(), axes.end(), 0);
         }
-        if (steps.empty()){
-            steps.resize(axes.size());
-            std::fill(steps.begin(), steps.end(), 1);
+
+        for (int i = 0; i < axes.size(); i++) {
+            starts[axes[i]] = temp_starts[i];
+            ends[axes[i]] = temp_ends[i];
+        }
+
+        if (temp_steps.empty()){
+            
+        }
+        else {
+            for (int i = 0; i < axes.size(); i++) {
+                steps[axes[i]] = temp_starts[i];
+            }
         }
 
         inputWindowOffsets.resize(inputShape.size());
@@ -93,8 +123,9 @@ public:
         inputWindowStrides.resize(inputShape.size());
 
         std::fill(inputWindowOffsets.begin(), inputWindowOffsets.end(), 0);
-        std::fill(inputWindowSizes.begin(), inputWindowSizes.end(), 0);
-        std::fill(inputWindowStrides.begin(), inputWindowStrides.end(), 0);
+        //std::fill(inputWindowSizes.begin(), inputWindowSizes.end(), 0);
+        inputWindowSizes = inputShape;
+        std::fill(inputWindowStrides.begin(), inputWindowStrides.end(), 1);
 
 
         for (int i = 0; i < axes.size(); i++){
@@ -103,7 +134,7 @@ public:
             // modify start and end
             auto checkAndModifiyIfMinusOrOOB = [&](int& val) {
                 if (val < 0) {
-                    val = inputShape[axis] + val;
+                    val = inputShape[axis];
                 }
                 else if (val >= static_cast<int>(inputShape[axis])) {
                     val = inputShape[axis];

@@ -3,6 +3,7 @@
 // modified by fuxihao, 10/7/2022
 #include "OperatorRegistration.h"
 
+
 namespace ODI
 {
 
@@ -135,7 +136,7 @@ public:
                     //.FusedActivation(dml::FusedActivation::Relu())
                     .Build();
     }
-private:
+protected:
     // bool hasBias = true;
     std::string autoPad;
     std::vector<uint32_t> dialations;
@@ -150,6 +151,67 @@ private:
     std::optional<dml::Expression> m_bias;
 
 };
+class DmlOperatorFusedConvolution : public DmlOperatorConvolution {
+public:
+    DmlOperatorFusedConvolution(std::map<std::string, dml::Expression>& expressionMap, std::map<std::string, ONNX_PARSER::InitializerTensorInfo>& initializerMap, ONNX_PARSER::Op& node, dml::Graph& graph, unsigned int opsetVersion)
+        : DmlOperatorConvolution(expressionMap, initializerMap, node, graph, opsetVersion) {
+        ONNX_PARSER::AttributeValWrapper attriWrapper = node.GetAttribute("fused_activation", ONNX_PARSER::AttributeType::STRING);
+        if (attriWrapper.isValid()) {
+            fusedActivationType.resize(attriWrapper.getValue().size());
+            memcpy(fusedActivationType.data(), attriWrapper.getValue().data(), attriWrapper.getValue().size());
+        }
+        else {
+            fusedActivationType = "Relu";
+        }
+    }
+    dml::Expression Create() {
+        dml::FusedActivation activation = dml::FusedActivation::None();
+        if (fusedActivationType == "Relu") {
+            activation = dml::FusedActivation::Relu();
+        }
+        else if (fusedActivationType == "Sigmoid") {
+            activation = dml::FusedActivation::Sigmoid();
+        }
+
+
+        return dml::ConvolutionBuilder(m_input, m_weight, m_bias)
+            //.Mode()
+            .Direction(DML_CONVOLUTION_DIRECTION_FORWARD) // TODO: Add reverse direction to support transposedconv
+            .Strides(strides)
+            .Dilations(dialations)
+            .StartPadding(startPaddings)
+            .EndPadding(endPaddings)
+            //.OutputPadding(outputPaddings) // pad to the conv output
+            .GroupCount(group)
+            .FusedActivation(activation)
+            //.FusedActivation(dml::FusedActivation::Relu())
+            .Build();
+    }
+private:
+    std::string fusedActivationType;
+};
+//class DmlOperatorConvolutionSigmoid : public DmlOperatorConvolution {
+//public:
+//    DmlOperatorConvolutionSigmoid(std::map<std::string, dml::Expression>& expressionMap, std::map<std::string, ONNX_PARSER::InitializerTensorInfo>& initializerMap, ONNX_PARSER::Op& node, dml::Graph& graph, unsigned int opsetVersion)
+//        : DmlOperatorConvolution(expressionMap, initializerMap, node, graph, opsetVersion) {
+//
+//    }
+//    dml::Expression Create() {
+//        return dml::ConvolutionBuilder(m_input, m_weight, m_bias)
+//            //.Mode()
+//            .Direction(DML_CONVOLUTION_DIRECTION_FORWARD) // TODO: Add reverse direction to support transposedconv
+//            .Strides(strides)
+//            .Dilations(dialations)
+//            .StartPadding(startPaddings)
+//            .EndPadding(endPaddings)
+//            //.OutputPadding(outputPaddings) // pad to the conv output
+//            .GroupCount(group)
+//            .FusedActivation(dml::FusedActivation::Sigmoid())
+//            //.FusedActivation(dml::FusedActivation::Relu())
+//            .Build();
+//};
+//    
+    
 
 // // A specific type of operation for registration.
 // template <DML_CONVOLUTION_MODE Mode, DML_CONVOLUTION_DIRECTION Direction, bool hasDynamicPads = false>
@@ -163,6 +225,9 @@ private:
 // };
 
 DML_OP_DEFINE_CREATION_FUNCTION(Conv, DmlOperatorConvolution);
+
+DML_OP_DEFINE_CREATION_FUNCTION(DmlFusedConv, DmlOperatorFusedConvolution);
+//DML_OP_DEFINE_CREATION_FUNCTION(Conv_Relu, DmlOperatorConvolutionRelu);
 
 //DML_OP_DEFINE_CREATION_FUNCTION(Conv,                           DmlOperatorConvolutionTemplate<DML_CONVOLUTION_MODE_CROSS_CORRELATION, DML_CONVOLUTION_DIRECTION_FORWARD>);
 // DML_OP_DEFINE_CREATION_FUNCTION(ConvTranspose,                  DmlOperatorConvolutionTemplate<DML_CONVOLUTION_MODE_CROSS_CORRELATION, DML_CONVOLUTION_DIRECTION_BACKWARD>);

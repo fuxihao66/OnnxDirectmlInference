@@ -607,6 +607,9 @@ void OnnxParser::ParseGraphNodes() {
 			if (op.inputNames.size() >= 3)
 				op.AppendAdditionAttribute(initializerMetaData[op.inputNames[2]], "constant_value");
 		}
+		else if (node.op_type() == "Reshape") {
+			op.AppendAdditionAttribute(initializerMetaData[op.inputNames[1]], "shape");
+		}
 		// else if (node.op_type() == "Cast"){ // need cast type 
 		// 	op.AppendAdditionAttribute(initializerMetaData[op.inputNames[1]], "target_type");
 		// }

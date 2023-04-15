@@ -3,6 +3,7 @@
 
 #include "OperatorRegistration.h"
 
+
 namespace ODI
 {
 
@@ -134,6 +135,30 @@ public:
         if (m_input0.GetOutputDesc().sizes.size() != m_input1.GetOutputDesc().sizes.size()) {
             assert(false);
         }
+
+        std::vector<uint32_t> repeatsNumber0(m_input0.GetOutputDesc().sizes.size(), 1);
+        std::vector<uint32_t> repeatsNumber1(m_input0.GetOutputDesc().sizes.size(), 1);
+        bool repeatNumber0 = false;
+        bool repeatNumber1 = false;
+        for (int i = 0; i < m_input0.GetOutputDesc().sizes.size(); i++) {
+            int size0 = m_input0.GetOutputDesc().sizes[i];
+            int size1 = m_input1.GetOutputDesc().sizes[i];
+            int finalSize = max(size0, size1);
+
+            repeatNumber0 = repeatNumber0 || (size0 < finalSize);
+            repeatNumber1 = repeatNumber1 || (size1 < finalSize);
+
+            repeatsNumber0[i] = finalSize / size0;
+            repeatsNumber1[i] = finalSize / size1;
+        }
+
+        if (repeatNumber0) {
+            m_input0 = dml::Tile(expressionMap[node.inputNames[0]], repeatsNumber0);
+        }
+        if (repeatNumber1) {
+            m_input1 = dml::Tile(expressionMap[node.inputNames[1]], repeatsNumber1);
+        }
+        
 
         // TODO: ONLY ADD operator supports fused activation
         // std::optional<ActivationOperatorDesc> fusedActivation = FusionHelpers::TryGetFusedActivationDesc(kernelInfo);

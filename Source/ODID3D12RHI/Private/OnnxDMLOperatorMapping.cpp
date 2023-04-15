@@ -21,34 +21,39 @@ namespace ODI{
 
 
 // DML_OP_EXTERN_CREATION_FUNCTION(Copy); // for Unsqueeze
-DML_OP_EXTERN_CREATION_FUNCTION(Conv);
-DML_OP_EXTERN_CREATION_FUNCTION(InstanceNormalization);
-DML_OP_EXTERN_CREATION_FUNCTION(Relu);
-DML_OP_EXTERN_CREATION_FUNCTION(Gather);
-DML_OP_EXTERN_CREATION_FUNCTION(Concat);
-DML_OP_EXTERN_CREATION_FUNCTION(Slice);
-// DML_OP_EXTERN_CREATION_FUNCTION(Slice7);
-// DML_OP_EXTERN_CREATION_FUNCTION(Slice10);
-// DML_OP_EXTERN_CREATION_FUNCTION(Slice11);
-// DML_OP_EXTERN_CREATION_FUNCTION(Slice13);
-DML_OP_EXTERN_CREATION_FUNCTION(Pad);
-// DML_OP_EXTERN_CREATION_FUNCTION(Pad7);
-// DML_OP_EXTERN_CREATION_FUNCTION(Pad11);
-// DML_OP_EXTERN_CREATION_FUNCTION(Pad13);
-DML_OP_EXTERN_CREATION_FUNCTION(Floor);
-DML_OP_EXTERN_CREATION_FUNCTION(Add);
-DML_OP_EXTERN_CREATION_FUNCTION(Mul);
-DML_OP_EXTERN_CREATION_FUNCTION(Div);
-DML_OP_EXTERN_CREATION_FUNCTION(Upsample);
-// DML_OP_EXTERN_CREATION_FUNCTION(Upsample7);
-// DML_OP_EXTERN_CREATION_FUNCTION(Upsample9);
-// DML_OP_EXTERN_CREATION_FUNCTION(Upsample10);
-DML_OP_EXTERN_CREATION_FUNCTION(Cast);
-//DML_OP_EXTERN_CREATION_FUNCTION(Floor);
-DML_OP_EXTERN_CREATION_FUNCTION(Constant); // not implemented in ORT
-// DML_OP_EXTERN_CREATION_FUNCTION(Shape);    // not implemented in ORT, use constant to implement shape
-DML_OP_EXTERN_CREATION_FUNCTION(Unsqueeze);  
-// or combine operator?
+    DML_OP_EXTERN_CREATION_FUNCTION(Conv);
+    DML_OP_EXTERN_CREATION_FUNCTION(DmlFusedConv);
+    //DML_OP_EXTERN_CREATION_FUNCTION(Conv_Relu);
+    DML_OP_EXTERN_CREATION_FUNCTION(BatchNormalization);
+    DML_OP_EXTERN_CREATION_FUNCTION(DmlFusedBatchNormalization);
+    DML_OP_EXTERN_CREATION_FUNCTION(InstanceNormalization);
+    DML_OP_EXTERN_CREATION_FUNCTION(Relu);
+    DML_OP_EXTERN_CREATION_FUNCTION(Gather);
+    DML_OP_EXTERN_CREATION_FUNCTION(Concat);
+    DML_OP_EXTERN_CREATION_FUNCTION(Slice);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Slice7);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Slice10);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Slice11);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Slice13);
+    DML_OP_EXTERN_CREATION_FUNCTION(Pad);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Pad7);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Pad11);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Pad13);
+    DML_OP_EXTERN_CREATION_FUNCTION(Floor);
+    DML_OP_EXTERN_CREATION_FUNCTION(Add);
+    DML_OP_EXTERN_CREATION_FUNCTION(Mul);
+    DML_OP_EXTERN_CREATION_FUNCTION(Div);
+    DML_OP_EXTERN_CREATION_FUNCTION(Upsample);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Upsample7);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Upsample9);
+    // DML_OP_EXTERN_CREATION_FUNCTION(Upsample10);
+    DML_OP_EXTERN_CREATION_FUNCTION(Cast);
+    //DML_OP_EXTERN_CREATION_FUNCTION(Floor);
+    DML_OP_EXTERN_CREATION_FUNCTION(Constant); // not implemented in ORT
+    // DML_OP_EXTERN_CREATION_FUNCTION(Shape);    // not implemented in ORT, use constant to implement shape
+    DML_OP_EXTERN_CREATION_FUNCTION(Unsqueeze);
+    DML_OP_EXTERN_CREATION_FUNCTION(Reshape);
+    // or combine operator?
 
 
 
@@ -57,10 +62,13 @@ using CreateFn = dml::Expression(CALLBACK *)(std::map<std::string, dml::Expressi
 static std::unordered_map<std::string, CreateFn> g_operatorRegistrationMap =
     {
         {REG_INFO(Conv)},
+        {REG_INFO(DmlFusedConv)},
+        {REG_INFO(BatchNormalization)},
+        {REG_INFO(DmlFusedBatchNormalization)},
         {REG_INFO(InstanceNormalization)},
         // Data Reorganization Layers
         {REG_INFO(Concat)}, // Adds negative axis.
-        {REG_INFO(Slice)}, 
+        {REG_INFO(Slice)},
         //{REG_INFO_VER(Slice, 7, )},
         //{REG_INFO_VER(Slice, 10, )}, // Adds negative axes.
         //{REG_INFO_VER(Slice, 11, )}, // Adds negative axes.
@@ -76,6 +84,7 @@ static std::unordered_map<std::string, CreateFn> g_operatorRegistrationMap =
         // Data reorganization that merely changes the dimensions while keeping the data identical.
         // {REG_INFO_COPY(Unsqueeze, )}, // used by ORT
         {REG_INFO(Unsqueeze)},
+        {REG_INFO(Reshape)},
         /*{REG_INFO_VER(Unsqueeze, 1)},
         {REG_INFO_VER(Unsqueeze, 11)},
         {REG_INFO_VER(Unsqueeze, 13)},*/
