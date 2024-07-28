@@ -43,7 +43,7 @@ struct ModelInfo {
 	ModelInfo() : PersAndTempResourceIsBinded(false), modelInputNum(0), modelOutputNum(0), dmlGraph(nullptr), dmlOpInitializer(nullptr),
 		modelPersistentResource(nullptr), modelTemporaryResource(nullptr), modelOperatorWeights(nullptr), dmlBindingTable(nullptr)
 	{}
-	Destroy(){
+	void Destroy(){
 		dmlGraph = nullptr;
 		dmlOpInitializer = nullptr;
 		modelPersistentResource = nullptr;

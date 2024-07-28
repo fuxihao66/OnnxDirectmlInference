@@ -69,7 +69,8 @@ public class ODID3D12RHI : ModuleRules
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
 
 		PublicDefinitions.Add("NV_AFTERMATH=0");
-		PublicDefinitions.Add("INTEL_EXTENSIONS=0");
+		PublicDefinitions.Add("WITH_NVAPI=0");
+        PublicDefinitions.Add("INTEL_EXTENSIONS=0");
 		// AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAPI");
 		// AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAftermath");
 		// AddEngineThirdPartyPrivateStaticDependencies(Target, "IntelMetricsDiscovery");
