@@ -43,6 +43,15 @@ struct ModelInfo {
 	ModelInfo() : PersAndTempResourceIsBinded(false), modelInputNum(0), modelOutputNum(0), dmlGraph(nullptr), dmlOpInitializer(nullptr),
 		modelPersistentResource(nullptr), modelTemporaryResource(nullptr), modelOperatorWeights(nullptr), dmlBindingTable(nullptr)
 	{}
+	Destroy(){
+		dmlGraph = nullptr;
+		dmlOpInitializer = nullptr;
+		modelPersistentResource = nullptr;
+		modelTemporaryResource = nullptr;
+		modelOperatorWeights = nullptr;
+		scratchResource = nullptr;
+		dmlBindingTable = nullptr;
+	}
 };
 
 class DescriptorHeapWrapper 
@@ -78,6 +87,9 @@ private:
 	}
 
 public:
+	~DescriptorHeapWrapper(){
+		m_pHeap = nullptr;
+	}
 	DescriptorHeapWrapper(
 		_In_ ID3D12Device* device,
 		D3D12_DESCRIPTOR_HEAP_TYPE type,
@@ -178,6 +190,11 @@ FODID3D12RHI::FODID3D12RHI(const FODIRHICreateArguments& Arguments)
 
 FODID3D12RHI::~FODID3D12RHI()
 {
+	for (auto it = m_modelNameToResourceInfo.begin(); it != m_modelNameToResourceInfo.end(); it++)
+		it->second.Destroy();
+	m_dmlDevice = nullptr;
+	m_dmlCommandRecorder = nullptr;
+	m_dmlDescriptorHeap = nullptr;
 	UE_LOG(LogODID3D12RHI, Log, TEXT("%s Enter"), ANSI_TO_TCHAR(__FUNCTION__));
 	
 	UE_LOG(LogODID3D12RHI, Log, TEXT("%s Leave"), ANSI_TO_TCHAR(__FUNCTION__));
